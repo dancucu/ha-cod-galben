@@ -8,6 +8,11 @@ NAME = "Cod Galben"
 CONF_COUNTY = "county"
 
 URL_AVERTIZARI = "https://www.meteoromania.ro/avertizari-xml.php"
+URL_AVERTIZARI_PAGE = "https://www.meteoromania.ro/avertizari/"
+URL_HARTA_SVG = (
+    "https://www.meteoromania.ro/wp-content/plugins/meteo/harti/"
+    "harta.svg.php?id_avertizare={id}"
+)
 URL_NOWCASTING = "https://www.meteoromania.ro/avertizari-nowcasting-xml.php"
 URL_NOWCASTING_GIS = "https://www.meteoromania.ro/avertizari-nowcasting-xml-gis.php"
 

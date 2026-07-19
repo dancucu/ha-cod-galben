@@ -11,11 +11,18 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import parse_avertizari_xml, parse_nowcasting_xml, summarize_hits
+from .api import (
+    assign_map_ids,
+    extract_map_ids_from_html,
+    parse_avertizari_xml,
+    parse_nowcasting_xml,
+    summarize_hits,
+)
 from .const import (
     DOMAIN,
     UPDATE_INTERVAL_SECONDS,
     URL_AVERTIZARI,
+    URL_AVERTIZARI_PAGE,
     URL_NOWCASTING,
     URL_NOWCASTING_GIS,
     county_label,
@@ -78,9 +85,19 @@ class CodGalbenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     nowcasting_hits.append(hit)
                     seen.add(key)
 
+        map_ids: list[str] = []
+        try:
+            page_html = await self._async_fetch_text(session, URL_AVERTIZARI_PAGE)
+            map_ids = extract_map_ids_from_html(page_html)
+        except (aiohttp.ClientError, TimeoutError, UpdateFailed) as err:
+            _LOGGER.warning("Avertizări page (map IDs) fetch failed: %s", err)
+
+        assign_map_ids(avertizare_hits, map_ids)
+
         return {
             "county": self.county,
             "county_name": self.county_name,
+            "map_ids": map_ids,
             "avertizare": summarize_hits(avertizare_hits),
             "nowcasting": summarize_hits(nowcasting_hits),
         }

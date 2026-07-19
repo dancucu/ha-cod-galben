@@ -17,6 +17,7 @@ from .const import (
     LEVEL_INFORMARE,
     LEVEL_NONE,
     OVERALL_COLOR_CODES,
+    URL_HARTA_SVG,
     ZONE_COLOR_CODES,
     base_judet_code,
     max_level,
@@ -48,9 +49,43 @@ class WarningHit:
     judet_codes: list[str]
     mesaj: str
     message_excerpt: str  # short preview (kept for older Lovelace cards)
+    map_id: str | None = None  # ANM harta.svg.php?id_avertizare=
+    map_url: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+_MAP_ID_RE = re.compile(r"id_avertizare=(\d+)")
+_MESAJ_NUM_RE = re.compile(r"MESAJ\s+(\d+)\s*/\s*\d+", re.IGNORECASE)
+
+
+def extract_map_ids_from_html(html: str) -> list[str]:
+    """Ordered unique map IDs from the ANM avertizări HTML page."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for mid in _MAP_ID_RE.findall(html or ""):
+        if mid not in seen:
+            seen.add(mid)
+            out.append(mid)
+    return out
+
+
+def assign_map_ids(hits: list[WarningHit], map_ids: list[str]) -> None:
+    """Attach map_id/map_url to hits using MESAJ N/M index into national map list."""
+    if not map_ids:
+        return
+
+    for hit in hits:
+        if hit.source != "avertizare":
+            continue
+        m = _MESAJ_NUM_RE.search(hit.message_excerpt or "")
+        if not m:
+            continue
+        idx = int(m.group(1)) - 1
+        if 0 <= idx < len(map_ids):
+            hit.map_id = map_ids[idx]
+            hit.map_url = URL_HARTA_SVG.format(id=hit.map_id)
 
 
 def _strip_html(raw: str) -> str:
@@ -381,6 +416,7 @@ def summarize_hits(hits: list[WarningHit]) -> dict[str, Any]:
             "tip": None,
             "mesaj": None,
             "count": 0,
+            "map_ids": [],
             "warnings": [],
         }
 
@@ -391,6 +427,7 @@ def summarize_hits(hits: list[WarningHit]) -> dict[str, Any]:
         if h.fenomene and h.fenomene not in fenomene_parts:
             fenomene_parts.append(h.fenomene)
 
+    map_ids = [h.map_id for h in hits if h.map_id]
     return {
         "afectat": True,
         "nivel": nivel,
@@ -401,5 +438,6 @@ def summarize_hits(hits: list[WarningHit]) -> dict[str, Any]:
         "tip": primary.tip,
         "mesaj": primary.mesaj or None,
         "count": len(hits),
+        "map_ids": map_ids,
         "warnings": [h.as_dict() for h in hits],
     }

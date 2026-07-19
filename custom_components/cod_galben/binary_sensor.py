@@ -97,6 +97,7 @@ class CodGalbenBinarySensor(CoordinatorEntity[CodGalbenCoordinator], BinarySenso
             else "nowcasting"
         )
         block = (self.coordinator.data or {}).get(bucket) or {}
+        data = self.coordinator.data or {}
         return {
             "nivel": block.get("nivel"),
             "fenomene": block.get("fenomene"),
@@ -106,6 +107,7 @@ class CodGalbenBinarySensor(CoordinatorEntity[CodGalbenCoordinator], BinarySenso
             "tip": block.get("tip"),
             "mesaj": block.get("mesaj"),
             "count": block.get("count"),
+            "map_ids": block.get("map_ids") or data.get("map_ids") or [],
             "warnings": block.get("warnings"),
             "judet": self.coordinator.county,
             "judet_nume": self.coordinator.county_name,

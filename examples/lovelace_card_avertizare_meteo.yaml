@@ -104,25 +104,8 @@ entities:
             return '';
           };
 
-          // Hărți ANM (ha-lenovo): sensor.harta_meteo_activa + /local/harta_anm_{id}.svg
-          const harta = states['sensor.harta_meteo_activa'];
-          const dateHarti = states['sensor.culoare_harta_galati']?.attributes?.date_harti || {};
-          let allIds = [];
-          const idsAttr = harta?.attributes?.ids_detectate
-            || states['sensor.anm_avertizare_id']?.attributes?.id_list
-            || states['sensor.anm_avertizare_id']?.state;
-          if (Array.isArray(idsAttr)) allIds = idsAttr.map(String);
-          else if (typeof idsAttr === 'string' && idsAttr.trim())
-            allIds = idsAttr.split(',').map(x => x.trim()).filter(Boolean);
-          allIds = [...new Set(allIds)].sort((a, b) => Number(a) - Number(b));
-
-          const isAffected = (c) => {
-            const x = (c || '').toLowerCase();
-            return ['galben', 'portocaliu', 'rosu', 'roșu', 'informare'].includes(x);
-          };
-          const idsForJudet = allIds.filter(id =>
-            !(id in dateHarti) || isAffected(dateHarti[id])
-          );
+          // Hărți ANM: map_id pe fiecare warning (Cod Galben) + /local/harta_anm_{id}.svg
+          const allIds = (bin?.attributes?.map_ids || []).map(String);
 
           const mapImg = (id) => {
             if (!id) return '';
@@ -136,13 +119,14 @@ entities:
           };
 
           const resolveMapId = (w, index) => {
+            if (w.map_id) return String(w.map_id);
             const excerpt = `${w.message_excerpt || ''} ${w.mesaj || ''} ${w.tip || ''}`;
             const m = excerpt.match(/MESAJ\s+(\d+)\s*\/\s*\d+/i);
             if (m && allIds.length) {
               const byIndex = allIds[Number(m[1]) - 1];
               if (byIndex) return byIndex;
             }
-            return idsForJudet[index] || null;
+            return allIds[index] || null;
           };
 
           const escapeHtml = (s) => String(s || '')
@@ -175,7 +159,7 @@ entities:
 
             let mapId = resolveMapId(w, i);
             if (mapId && usedIds.has(mapId)) {
-              mapId = idsForJudet.find(id => !usedIds.has(id)) || mapId;
+              mapId = allIds.find(id => !usedIds.has(id)) || mapId;
             }
             if (mapId && (w.level || '').toLowerCase() !== 'informare') {
               usedIds.add(mapId);
