@@ -9,3 +9,6 @@ venv/
 *.egg-info/
 dist/
 build/
+
+# Local working notes (not for public repo)
+WORKING.md
