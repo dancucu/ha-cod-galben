@@ -56,6 +56,17 @@ Atribute utile pe binary sensor / nivel: `warnings` (listă detaliată), `judet`
 - `https://www.meteoromania.ro/avertizari-nowcasting-xml.php`
 - `https://www.meteoromania.ro/avertizari-nowcasting-xml-gis.php`
 
+## Card Lovelace „AVERTIZARE METEO”
+
+Replică stilul cardului din dashboard-ul **Acasă** (ha-lenovo): antet colorat + fold cu detalii.
+
+| Fișier | Dependențe |
+|--------|------------|
+| [`examples/lovelace_card_avertizare_meteo.yaml`](examples/lovelace_card_avertizare_meteo.yaml) | HACS: **button-card**, **fold-entity-row** |
+| [`examples/lovelace_card_markdown.yaml`](examples/lovelace_card_markdown.yaml) | doar Markdown nativ |
+
+Culori antet: galben `#ffde07` / portocaliu `#f09035` / roșu `#ea3323` / informare gri / idle albastru. Expandat: tip, interval, fenomene (+ nowcasting dacă e activ). Tap pe detalii → [meteoromania.ro/avertizari](https://www.meteoromania.ro/avertizari/).
+
 ## Automatizări
 
 Vezi [`examples/`](examples/).

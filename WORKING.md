@@ -83,7 +83,9 @@ ha-cod-galben/
 ├── hacs.json
 ├── examples/
 │   ├── automation_avertizare.yaml
-│   └── automation_nowcasting.yaml
+│   ├── automation_nowcasting.yaml
+│   ├── lovelace_card_avertizare_meteo.yaml   # stil Acasă (button-card + fold)
+│   └── lovelace_card_markdown.yaml           # variantă nativă
 └── custom_components/cod_galben/
     ├── __init__.py
     ├── manifest.json
@@ -105,8 +107,9 @@ ha-cod-galben/
 - [x] Senzori + binary sensors
 - [x] Exemple automatizări notificare
 - [x] README + HACS
-- [ ] Creare repo GitHub `ha-cod-galben` + push
-- [ ] (opțional) Instalare pe HA lenovo / test live
+- [x] Creare repo GitHub `ha-cod-galben` + push (`cursor/ha-cod-galben-integration`)
+- [x] Card Lovelace tip Acasă „AVERTIZARE METEO” (`examples/lovelace_card_*.yaml`)
+- [ ] (opțional) Instalare pe HA lenovo / test live / commit card pe branch
 
 ## Context conversație
 

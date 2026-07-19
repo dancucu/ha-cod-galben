@@ -1,0 +1,39 @@
+# Variantă simplă (fără button-card / fold-entity-row) — Markdown nativ HA
+# Exemplu Galați. Schimbă entity_id-urile după județ.
+
+type: markdown
+title: AVERTIZARE METEO
+content: |
+  {% set nivel = states('sensor.cod_galben_galati_nivel_avertizare') %}
+  {% set activ = is_state('binary_sensor.cod_galben_galati_avertizare_activa', 'on') %}
+  {% set culoare =
+      '🔴' if nivel == 'rosu' else
+      '🟠' if nivel == 'portocaliu' else
+      '🟡' if nivel == 'galben' else
+      '⚪' if nivel == 'informare' else
+      '🟢' %}
+  ## {{ culoare }} {{ nivel | upper if activ else 'Fără avertizare' }}
+
+  **Județ:** {{ state_attr('binary_sensor.cod_galben_galati_avertizare_activa', 'judet_nume') }}
+
+  {% if activ %}
+  **Tip:** {{ states('sensor.cod_galben_galati_tip_mesaj') }}
+
+  **Perioadă:** {{ states('sensor.cod_galben_galati_interval_avertizare') }}
+
+  **De la:** {{ states('sensor.cod_galben_galati_valabil_de_la') }}  
+  **Până la:** {{ states('sensor.cod_galben_galati_valabil_pana_la') }}
+
+  **Fenomene:** {{ states('sensor.cod_galben_galati_fenomene') }}
+  {% else %}
+  Nicio avertizare activă.
+  {% endif %}
+
+  {% if is_state('binary_sensor.cod_galben_galati_nowcasting_activ', 'on') %}
+  ---
+  ### Nowcasting {{ states('sensor.cod_galben_galati_nivel_nowcasting') | upper }}
+
+  **Perioadă:** {{ states('sensor.cod_galben_galati_interval_nowcasting') }}
+
+  **Fenomene:** {{ states('sensor.cod_galben_galati_fenomene_nowcasting') }}
+  {% endif %}
