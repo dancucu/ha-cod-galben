@@ -7,6 +7,7 @@ from datetime import timedelta
 from typing import Any
 
 import aiohttp
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -19,13 +20,21 @@ from .api import (
     summarize_hits,
 )
 from .const import (
+    CONF_COUNTY,
+    CONF_MAP_STYLE,
     DOMAIN,
+    MAP_STYLE_DEFAULT,
     UPDATE_INTERVAL_SECONDS,
     URL_AVERTIZARI,
     URL_AVERTIZARI_PAGE,
     URL_NOWCASTING,
     URL_NOWCASTING_GIS,
     county_label,
+)
+from .www_store import (
+    async_ensure_gis_assets,
+    async_write_warning_geojson,
+    clear_geojson_from_summary,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -34,8 +43,9 @@ _LOGGER = logging.getLogger(__name__)
 class CodGalbenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Fetch and parse ANM warnings for one county."""
 
-    def __init__(self, hass: HomeAssistant, county: str) -> None:
-        self.county = county.upper()
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        self.entry = entry
+        self.county = entry.data[CONF_COUNTY].upper()
         self.county_name = county_label(self.county)
         super().__init__(
             hass,
@@ -43,6 +53,10 @@ class CodGalbenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             name=f"{DOMAIN}_{self.county}",
             update_interval=timedelta(seconds=UPDATE_INTERVAL_SECONDS),
         )
+
+    @property
+    def map_style(self) -> str:
+        return self.entry.options.get(CONF_MAP_STYLE, MAP_STYLE_DEFAULT)
 
     async def _async_fetch_text(self, session: aiohttp.ClientSession, url: str) -> str:
         async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
@@ -94,10 +108,20 @@ class CodGalbenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         assign_map_ids(avertizare_hits, map_ids)
 
+        # Persist Leaflet assets + GeoJSON under /config/www/cod_galben/
+        await async_ensure_gis_assets(self.hass)
+        await async_write_warning_geojson(self.hass, avertizare_hits)
+
+        avertizare = summarize_hits(avertizare_hits)
+        nowcasting = summarize_hits(nowcasting_hits)
+        clear_geojson_from_summary(avertizare)
+        clear_geojson_from_summary(nowcasting)
+
         return {
             "county": self.county,
             "county_name": self.county_name,
             "map_ids": map_ids,
-            "avertizare": summarize_hits(avertizare_hits),
-            "nowcasting": summarize_hits(nowcasting_hits),
+            "map_style": self.map_style,
+            "avertizare": avertizare,
+            "nowcasting": nowcasting,
         }

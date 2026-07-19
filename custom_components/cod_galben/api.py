@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from html import unescape
 from typing import Any
@@ -23,6 +23,7 @@ from .const import (
     max_level,
     normalize_county_token,
 )
+from .gis import build_geojson_for_avertizare
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,9 +52,14 @@ class WarningHit:
     message_excerpt: str  # short preview (kept for older Lovelace cards)
     map_id: str | None = None  # ANM harta.svg.php?id_avertizare=
     map_url: str | None = None
+    gis_map_path: str | None = None  # /local/cod_galben/gis_{id}.json
+    # Full GeoJSON kept in memory for writing to www — never published to HA state
+    geojson: dict[str, Any] | None = field(default=None, repr=False)
 
     def as_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        data = asdict(self)
+        data.pop("geojson", None)
+        return data
 
 
 _MAP_ID_RE = re.compile(r"id_avertizare=(\d+)")
@@ -86,6 +92,7 @@ def assign_map_ids(hits: list[WarningHit], map_ids: list[str]) -> None:
         if 0 <= idx < len(map_ids):
             hit.map_id = map_ids[idx]
             hit.map_url = URL_HARTA_SVG.format(id=hit.map_id)
+            hit.gis_map_path = f"/local/cod_galben/gis_{hit.map_id}.json"
 
 
 def _strip_html(raw: str) -> str:
@@ -246,6 +253,7 @@ def parse_avertizari_xml(xml_text: str, county: str) -> list[WarningHit]:
 
         informare = _is_informare(tip_mesaj, tip, nume_culoare)
         judete = list(av.findall("judet"))
+        geojson = build_geojson_for_avertizare(av, county)
 
         if informare:
             # Informare: usually national — treat selected county as affected
@@ -269,6 +277,7 @@ def parse_avertizari_xml(xml_text: str, county: str) -> list[WarningHit]:
                     judet_codes=codes or [county],
                     mesaj=descriere,
                     message_excerpt=excerpt,
+                    geojson=geojson,
                 )
             )
             continue
@@ -308,6 +317,7 @@ def parse_avertizari_xml(xml_text: str, county: str) -> list[WarningHit]:
                 judet_codes=[county],
                 mesaj=descriere,
                 message_excerpt=excerpt,
+                geojson=geojson,
             )
         )
 

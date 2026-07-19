@@ -32,6 +32,18 @@ Settings → Devices & Services → Add Integration → **Cod Galben** → alege
 
 Poți adăuga integrarea de mai multe ori (câte un județ per entry).
 
+### Stil hartă (opțiuni)
+
+Settings → Devices & Services → **Cod Galben** → Configure:
+
+| Opțiune | Afișare pe card |
+|---------|-----------------|
+| **Hartă oficială ANM (SVG)** | default — ca pe meteoromania.ro |
+| **Hartă GIS (poligoane Leaflet)** | poligoane din `coordGis` (stil meteo-galati) |
+| **Ambele** | SVG oficial + hartă Leaflet |
+
+Integrarea scrie fișierele GeoJSON în `/config/www/cod_galben/` (`gis_{id}.json` + `map.html`). Atributul `map_style` apare pe binary sensor.
+
 ## Entități
 
 Device: `Cod Galben {Județ}`

@@ -16,6 +16,17 @@
       "already_configured": "Acest județ este deja configurat."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opțiuni Cod Galben",
+        "description": "Alege cum se afișează hărțile pe cardul Lovelace (poți schimba oricând).",
+        "data": {
+          "map_style": "Stil hartă"
+        }
+      }
+    }
+  },
   "entity": {
     "binary_sensor": {
       "avertizare_afectat": {

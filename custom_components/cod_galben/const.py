@@ -6,6 +6,22 @@ DOMAIN = "cod_galben"
 NAME = "Cod Galben"
 
 CONF_COUNTY = "county"
+CONF_MAP_STYLE = "map_style"
+
+# How Lovelace / cards should show maps (options flow)
+MAP_STYLE_OFICIAL = "oficial"  # ANM SVG (harta.svg.php / /local/harta_anm_*.svg)
+MAP_STYLE_GIS = "gis"  # Leaflet polygons from coordGis
+MAP_STYLE_AMBELE = "ambele"  # both
+MAP_STYLE_DEFAULT = MAP_STYLE_OFICIAL
+
+MAP_STYLE_OPTIONS: list[dict[str, str]] = [
+    {"value": MAP_STYLE_OFICIAL, "label": "Hartă oficială ANM (SVG)"},
+    {"value": MAP_STYLE_GIS, "label": "Hartă GIS (poligoane Leaflet)"},
+    {"value": MAP_STYLE_AMBELE, "label": "Ambele (oficial + GIS)"},
+]
+
+WWW_GIS_DIR = "cod_galben"
+WWW_GIS_MAP_HTML = "map.html"
 
 URL_AVERTIZARI = "https://www.meteoromania.ro/avertizari-xml.php"
 URL_AVERTIZARI_PAGE = "https://www.meteoromania.ro/avertizari/"
