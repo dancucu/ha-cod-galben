@@ -77,12 +77,8 @@ entities:
       [[[
         return (function () {
           const bin = states['binary_sensor.cod_galben_galati_avertizare_activa'];
-          const nivel = states['sensor.cod_galben_galati_nivel_avertizare']?.state || 'none';
-          const tip = states['sensor.cod_galben_galati_tip_mesaj']?.state || '';
           const fenomene = states['sensor.cod_galben_galati_fenomene']?.state || '';
           const interval = states['sensor.cod_galben_galati_interval_avertizare']?.state || '';
-          const de = states['sensor.cod_galben_galati_valabil_de_la']?.state || '';
-          const pana = states['sensor.cod_galben_galati_valabil_pana_la']?.state || '';
           const judet = bin?.attributes?.judet_nume || 'Galați';
           const warnings = bin?.attributes?.warnings || [];
 
@@ -108,33 +104,79 @@ entities:
             return '';
           };
 
+          // Hărți ANM (ha-lenovo): sensor.harta_meteo_activa + /local/harta_anm_{id}.svg
+          const harta = states['sensor.harta_meteo_activa'];
+          const dateHarti = states['sensor.culoare_harta_galati']?.attributes?.date_harti || {};
+          let allIds = [];
+          const idsAttr = harta?.attributes?.ids_detectate
+            || states['sensor.anm_avertizare_id']?.attributes?.id_list
+            || states['sensor.anm_avertizare_id']?.state;
+          if (Array.isArray(idsAttr)) allIds = idsAttr.map(String);
+          else if (typeof idsAttr === 'string' && idsAttr.trim())
+            allIds = idsAttr.split(',').map(x => x.trim()).filter(Boolean);
+          allIds = [...new Set(allIds)].sort((a, b) => Number(a) - Number(b));
+
+          const isAffected = (c) => {
+            const x = (c || '').toLowerCase();
+            return ['galben', 'portocaliu', 'rosu', 'roșu', 'informare'].includes(x);
+          };
+          const idsForJudet = allIds.filter(id =>
+            !(id in dateHarti) || isAffected(dateHarti[id])
+          );
+
+          const mapImg = (id) => {
+            if (!id) return '';
+            const local = `/local/harta_anm_${id}.svg`;
+            const remote = `https://images.weserv.nl/?url=www.meteoromania.ro%2Fwp-content%2Fplugins%2Fmeteo%2Fharti%2Fharta.svg.php%3Fid_avertizare%3D${id}`;
+            return `<div style="text-align:center;margin-top:10px;margin-bottom:10px;">
+              <img src="${local}" onerror="this.onerror=null;this.src='${remote}';"
+                   alt="Hartă ANM ${id}"
+                   style="width:100%;max-width:480px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.25);" />
+            </div>`;
+          };
+
+          const resolveMapId = (w, index) => {
+            const excerpt = `${w.message_excerpt || ''} ${w.tip || ''}`;
+            const m = excerpt.match(/MESAJ\s+(\d+)\s*\/\s*\d+/i);
+            if (m && allIds.length) {
+              const byIndex = allIds[Number(m[1]) - 1];
+              if (byIndex) return byIndex;
+            }
+            return idsForJudet[index] || null;
+          };
+
           if (!bin || bin.state !== 'on' || !warnings.length) {
             return `<div style="opacity:0.75;">Nicio avertizare activă pentru <b>${judet}</b>.</div>`;
           }
 
           let html = '';
-          for (const w of warnings) {
+          const usedIds = new Set();
+          for (let i = 0; i < warnings.length; i++) {
+            const w = warnings[i];
             const c = colorFor(w.level);
             const titlu = (w.tip || 'Avertizare').toUpperCase();
             const iv = w.interval_text || interval || '—';
             const fen = w.fenomene || fenomene || '—';
-            const start = w.start || de;
-            const end = w.end || pana;
             html += `<div style="margin-bottom:16px;border-left:4px solid ${c};padding-left:10px;">`;
             html += `<div style="font-weight:900;color:${c};text-transform:uppercase;margin-bottom:6px;">${titlu}${badge(w.level)}</div>`;
             html += `<div style="margin-bottom:6px;"><b style="color:${c}">Județ:</b> ${judet}</div>`;
             html += `<div style="margin-bottom:6px;"><b style="color:${c}">Interval:</b> ${iv}</div>`;
-            if (start && start !== '—') {
-              html += `<div style="margin-bottom:6px;"><b style="color:${c}">De la:</b> ${start}<br><b style="color:${c}">Până la:</b> ${end}</div>`;
-            }
             html += `<div style="margin-bottom:6px;"><b style="color:${c}">Fenomene:</b> ${fen}</div>`;
             if (w.message_excerpt) {
               html += `<div style="opacity:0.85;font-size:12px;margin-top:8px;">${w.message_excerpt}</div>`;
             }
+
+            let mapId = resolveMapId(w, i);
+            if (mapId && usedIds.has(mapId)) {
+              mapId = idsForJudet.find(id => !usedIds.has(id)) || mapId;
+            }
+            if (mapId && (w.level || '').toLowerCase() !== 'informare') {
+              usedIds.add(mapId);
+              html += mapImg(mapId);
+            }
             html += `</div>`;
           }
 
-          // Nowcasting pe scurt, dacă e activ
           const nc = states['binary_sensor.cod_galben_galati_nowcasting_activ'];
           if (nc && nc.state === 'on') {
             const nl = states['sensor.cod_galben_galati_nivel_nowcasting']?.state || 'galben';

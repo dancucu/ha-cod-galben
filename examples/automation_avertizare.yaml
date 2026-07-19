@@ -25,10 +25,6 @@ actions:
 
         Perioadă: {{ states('sensor.cod_galben_galati_interval_avertizare') }}
 
-        De la: {{ states('sensor.cod_galben_galati_valabil_de_la') }}
-
-        Până la: {{ states('sensor.cod_galben_galati_valabil_pana_la') }}
-
         Fenomene: {{ states('sensor.cod_galben_galati_fenomene') }}
       data:
         ttl: 0

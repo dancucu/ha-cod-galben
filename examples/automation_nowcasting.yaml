@@ -22,10 +22,6 @@ actions:
 
         Perioadă: {{ states('sensor.cod_galben_galati_interval_nowcasting') }}
 
-        De la: {{ states('sensor.cod_galben_galati_nowcasting_de_la') }}
-
-        Până la: {{ states('sensor.cod_galben_galati_nowcasting_pana_la') }}
-
         Fenomene: {{ states('sensor.cod_galben_galati_fenomene_nowcasting') }}
       data:
         ttl: 0
