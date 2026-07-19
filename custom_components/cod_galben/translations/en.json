@@ -22,7 +22,8 @@
         "title": "Cod Galben options",
         "description": "Choose how maps are shown on the Lovelace card (change anytime).",
         "data": {
-          "map_style": "Map style"
+          "map_style": "Card map type",
+          "gis_basemap": "GIS (Leaflet) basemap"
         }
       }
     }

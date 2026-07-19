@@ -22,7 +22,8 @@
         "title": "Opțiuni Cod Galben",
         "description": "Alege cum se afișează hărțile pe cardul Lovelace (poți schimba oricând).",
         "data": {
-          "map_style": "Stil hartă"
+          "map_style": "Tip hartă pe card",
+          "gis_basemap": "Fundal hartă GIS (Leaflet)"
         }
       }
     }

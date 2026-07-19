@@ -7,6 +7,7 @@ NAME = "Cod Galben"
 
 CONF_COUNTY = "county"
 CONF_MAP_STYLE = "map_style"
+CONF_GIS_BASEMAP = "gis_basemap"
 
 # How Lovelace / cards should show maps (options flow)
 MAP_STYLE_OFICIAL = "oficial"  # ANM SVG (harta.svg.php / /local/harta_anm_*.svg)
@@ -16,8 +17,18 @@ MAP_STYLE_DEFAULT = MAP_STYLE_OFICIAL
 
 MAP_STYLE_OPTIONS: list[dict[str, str]] = [
     {"value": MAP_STYLE_OFICIAL, "label": "Hartă oficială ANM (SVG)"},
-    {"value": MAP_STYLE_GIS, "label": "Hartă GIS (poligoane Leaflet)"},
+    {"value": MAP_STYLE_GIS, "label": "Hartă GIS (Leaflet)"},
     {"value": MAP_STYLE_AMBELE, "label": "Ambele (oficial + GIS)"},
+]
+
+# Leaflet tile layer when GIS / ambele is selected
+GIS_BASEMAP_OSM = "osm"  # OpenStreetMap — ca pe leafletjs.com
+GIS_BASEMAP_TOPO = "topo"  # OpenTopoMap — relief
+GIS_BASEMAP_DEFAULT = GIS_BASEMAP_OSM
+
+GIS_BASEMAP_OPTIONS: list[dict[str, str]] = [
+    {"value": GIS_BASEMAP_OSM, "label": "OpenStreetMap (stil leafletjs.com)"},
+    {"value": GIS_BASEMAP_TOPO, "label": "Relief (OpenTopoMap)"},
 ]
 
 WWW_GIS_DIR = "cod_galben"

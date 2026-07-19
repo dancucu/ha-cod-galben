@@ -21,8 +21,10 @@ from .api import (
 )
 from .const import (
     CONF_COUNTY,
+    CONF_GIS_BASEMAP,
     CONF_MAP_STYLE,
     DOMAIN,
+    GIS_BASEMAP_DEFAULT,
     MAP_STYLE_DEFAULT,
     UPDATE_INTERVAL_SECONDS,
     URL_AVERTIZARI,
@@ -59,6 +61,10 @@ class CodGalbenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     @property
     def map_style(self) -> str:
         return self.entry.options.get(CONF_MAP_STYLE, MAP_STYLE_DEFAULT)
+
+    @property
+    def gis_basemap(self) -> str:
+        return self.entry.options.get(CONF_GIS_BASEMAP, GIS_BASEMAP_DEFAULT)
 
     async def _async_fetch_text(self, session: aiohttp.ClientSession, url: str) -> str:
         async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
@@ -128,6 +134,7 @@ class CodGalbenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "county_name": self.county_name,
             "map_ids": map_ids,
             "map_style": self.map_style,
+            "gis_basemap": self.gis_basemap,
             "avertizare": avertizare,
             "nowcasting": nowcasting,
         }

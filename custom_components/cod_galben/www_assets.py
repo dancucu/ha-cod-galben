@@ -11,7 +11,7 @@ MAP_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Cod Galben — hartă GIS v1.3.8</title>
+<title>Cod Galben — hartă GIS v1.3.9</title>
 <link rel="stylesheet" href="leaflet.css"/>
 <style>
   html, body { margin:0; height:100%; background:#fff; }
@@ -52,7 +52,7 @@ MAP_HTML = """<!DOCTYPE html>
     return;
   }
 
-  // Ca pe https://leafletjs.com/ — map + OSM tiles
+  // Ca pe https://leafletjs.com/ — map + tile layer din ?tiles=osm|topo
   const map = L.map('map', {
     zoomControl: true,
     attributionControl: true,
@@ -60,10 +60,19 @@ MAP_HTML = """<!DOCTYPE html>
     maxBoundsViscosity: 0.6,
   });
 
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  }).addTo(map);
+  const tiles = (params.get('tiles') || 'osm').toLowerCase();
+  if (tiles === 'topo') {
+    L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      maxZoom: 17,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)',
+    }).addTo(map);
+  } else {
+    // default: OSM — același URL ca pe leafletjs.com
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
+  }
 
   map.createPane('romaniaBorder');
   map.getPane('romaniaBorder').style.zIndex = 450;
