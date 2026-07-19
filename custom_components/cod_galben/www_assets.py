@@ -11,7 +11,7 @@ MAP_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Cod Galben — hartă GIS v1.3.9</title>
+<title>Cod Galben — hartă GIS v1.3.10</title>
 <link rel="stylesheet" href="leaflet.css"/>
 <style>
   html, body { margin:0; height:100%; background:#fff; }
@@ -106,8 +106,8 @@ MAP_HTML = """<!DOCTYPE html>
     const sel = p.isSelected || p.isGalati;
     return {
       color: sel ? '#bf360c' : (EDGE[n] || EDGE.alt),
-      weight: sel ? 2.5 : 0.7,
-      opacity: 1,
+      weight: sel ? 1.2 : 0.5,
+      opacity: sel ? 0.55 : 0.45,
       fillColor: FILL[n] || FILL.alt,
       fillOpacity: FILL_OPACITY,
     };
