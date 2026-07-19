@@ -27,10 +27,12 @@ from .const import (
     UPDATE_INTERVAL_SECONDS,
     URL_AVERTIZARI,
     URL_AVERTIZARI_PAGE,
+    URL_HARTA_SVG,
     URL_NOWCASTING,
     URL_NOWCASTING_GIS,
     county_label,
 )
+from .svg_overlays import merge_svg_overlays_into_geojson
 from .www_store import (
     async_ensure_gis_assets,
     async_write_warning_geojson,
@@ -108,6 +110,10 @@ class CodGalbenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         assign_map_ids(avertizare_hits, map_ids)
 
+        # Official SVG paints mountain/litoral sub-zones (e.g. BZ_munte=portocaliu)
+        # that are missing from XML county polygons — merge them into GIS GeoJSON.
+        await self._async_enrich_hits_with_svg_overlays(session, avertizare_hits)
+
         # Persist Leaflet assets + GeoJSON under /config/www/cod_galben/
         await async_ensure_gis_assets(self.hass)
         await async_write_warning_geojson(self.hass, avertizare_hits)
@@ -125,3 +131,32 @@ class CodGalbenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "avertizare": avertizare,
             "nowcasting": nowcasting,
         }
+
+    async def _async_enrich_hits_with_svg_overlays(
+        self, session: aiohttp.ClientSession, hits: list
+    ) -> None:
+        """Fetch ANM SVG per map_id and overlay mountain zones onto geojson."""
+        cache: dict[str, str] = {}
+        for hit in hits:
+            if not hit.geojson or not hit.map_id:
+                continue
+            map_id = str(hit.map_id)
+            if map_id not in cache:
+                url = URL_HARTA_SVG.format(id=map_id)
+                try:
+                    cache[map_id] = await self._async_fetch_text(session, url)
+                except (aiohttp.ClientError, TimeoutError, UpdateFailed) as err:
+                    _LOGGER.warning("SVG overlay fetch failed for %s: %s", map_id, err)
+                    cache[map_id] = ""
+            svg_text = cache[map_id]
+            if not svg_text:
+                continue
+            before = len(hit.geojson.get("features") or [])
+            hit.geojson = merge_svg_overlays_into_geojson(
+                hit.geojson, svg_text, selected_county=self.county
+            )
+            after = len(hit.geojson.get("features") or [])
+            if after > before:
+                _LOGGER.debug(
+                    "SVG overlays for map %s: +%s features", map_id, after - before
+                )

@@ -11,13 +11,14 @@ MAP_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Cod Galben — hartă GIS</title>
+<title>Cod Galben — hartă GIS v1.3.8</title>
 <link rel="stylesheet" href="leaflet.css"/>
 <style>
   html, body { margin:0; height:100%; background:#fff; }
-  #map { width:100%; height:100%; background:#f5f5f5; }
+  #map { width:100%; height:100%; }
   .err { color:#333; font-family:system-ui,sans-serif; padding:1rem; }
-  .leaflet-container { background:#f0f4f8; font: 12px/1.4 system-ui,sans-serif; }
+  /* fundal default Leaflet (ca pe leafletjs.com) */
+  .leaflet-container { background:#ddd; font: 12px/1.5 "Helvetica Neue", Arial, Helvetica, sans-serif; }
 </style>
 </head>
 <body>
@@ -25,9 +26,9 @@ MAP_HTML = """<!DOCTYPE html>
 <script src="leaflet.js"></script>
 <script>
 (async function () {
-  const FILL = { galben:'#fdd835', portocaliu:'#fb8c00', rosu:'#e53935', alt:'#cfd8dc' };
-  const EDGE = { galben:'#f9a825', portocaliu:'#ef6c00', rosu:'#b71c1c', alt:'#90a4ae' };
-  // Full Romania — same framing idea as harta oficială ANM
+  const FILL = { galben:'#ffde07', portocaliu:'#f09035', rosu:'#ea3323', alt:'#cfd8dc' };
+  const EDGE = { galben:'#c9b000', portocaliu:'#c56e18', rosu:'#c62828', alt:'#90a4ae' };
+  const FILL_OPACITY = 0.45;
   const ROMANIA = L.latLngBounds([43.55, 20.15], [48.30, 29.75]);
 
   const params = new URLSearchParams(location.search);
@@ -39,7 +40,6 @@ MAP_HTML = """<!DOCTYPE html>
   if (!(src.startsWith('/') || src.startsWith('http'))) {
     src = location.pathname.replace(/[^/]+$/, '') + src;
   }
-  // Prefer GeoJSON for Leaflet (svg companion is fallback only)
   if (src.endsWith('.svg')) src = src.slice(0, -4) + '.json';
 
   let geojson;
@@ -52,44 +52,72 @@ MAP_HTML = """<!DOCTYPE html>
     return;
   }
 
+  // Ca pe https://leafletjs.com/ — map + OSM tiles
   const map = L.map('map', {
     zoomControl: true,
     attributionControl: true,
     maxBounds: ROMANIA.pad(0.15),
     maxBoundsViscosity: 0.6,
   });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap',
-    maxZoom: 12,
-    minZoom: 5,
+
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   }).addTo(map);
 
-  const layer = L.geoJSON(geojson, {
-    style: f => {
-      const p = f.properties || {};
-      const n = p.culoareNume || 'alt';
-      const sel = p.isSelected || p.isGalati;
-      return {
-        color: sel ? '#bf360c' : (EDGE[n] || EDGE.alt),
-        weight: sel ? 3 : 1,
-        fillColor: FILL[n] || FILL.alt,
-        fillOpacity: sel ? 0.75 : 0.45,
-      };
-    },
-    onEachFeature: (f, l) => {
-      const p = f.properties || {};
-      const label = (p.nume || p.cod || '') + (p.culoareNume ? (': ' + p.culoareNume) : '');
-      l.bindPopup(label);
-      // county code tooltip on hover
-      if (p.cod_base || p.cod) {
-        l.bindTooltip(p.cod_base || String(p.cod).split('_')[0], {
-          permanent: false, direction: 'center', className: 'county-tip'
-        });
-      }
+  map.createPane('romaniaBorder');
+  map.getPane('romaniaBorder').style.zIndex = 450;
+  map.getPane('romaniaBorder').style.pointerEvents = 'none';
+
+  try {
+    const rr = await fetch('romania.geojson', { cache: 'force-cache' });
+    if (rr.ok) {
+      const ro = await rr.json();
+      L.geoJSON(ro, {
+        pane: 'romaniaBorder',
+        style: {
+          color: '#4a4a4a',
+          weight: 1.25,
+          opacity: 0.45,
+          fill: false,
+          lineJoin: 'round',
+          lineCap: 'round',
+        },
+      }).addTo(map);
     }
-  }).addTo(map);
+  } catch (_) { /* contur opțional */ }
 
-  // Always show entire Romania (like official ANM SVG), not just warning bbox
+  const feats = geojson.features || [];
+  const base = { type:'FeatureCollection', features: feats.filter(f => !(f.properties||{}).overlay && (f.properties||{}).zoneType !== 'overlay') };
+  const overs = { type:'FeatureCollection', features: feats.filter(f => (f.properties||{}).overlay || (f.properties||{}).zoneType === 'overlay') };
+
+  function styleFeature(f) {
+    const p = f.properties || {};
+    const n = p.culoareNume || 'alt';
+    const sel = p.isSelected || p.isGalati;
+    return {
+      color: sel ? '#bf360c' : (EDGE[n] || EDGE.alt),
+      weight: sel ? 2.5 : 0.7,
+      opacity: 1,
+      fillColor: FILL[n] || FILL.alt,
+      fillOpacity: FILL_OPACITY,
+    };
+  }
+
+  function bindFeature(f, l) {
+    const p = f.properties || {};
+    const label = (p.nume || p.cod || '') + (p.culoareNume ? (': ' + p.culoareNume) : '');
+    l.bindPopup(label);
+    if (!p.overlay && p.zoneType !== 'overlay' && (p.cod_base || p.cod)) {
+      l.bindTooltip(p.cod_base || String(p.cod).split('_')[0], {
+        permanent: false, direction: 'center', className: 'county-tip'
+      });
+    }
+  }
+
+  L.geoJSON(base, { style: styleFeature, onEachFeature: bindFeature }).addTo(map);
+  L.geoJSON(overs, { style: styleFeature, onEachFeature: bindFeature }).addTo(map);
+
   map.fitBounds(ROMANIA, { padding: [8, 8], maxZoom: 7 });
   setTimeout(() => map.invalidateSize(), 50);
 })();

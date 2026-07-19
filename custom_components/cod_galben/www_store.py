@@ -22,6 +22,7 @@ _STATIC_DIR = Path(__file__).parent / "www_static"
 _STATIC_FILES = (
     "leaflet.js",
     "leaflet.css",
+    "romania.geojson",
     "images/marker-icon.png",
     "images/marker-icon-2x.png",
     "images/marker-shadow.png",

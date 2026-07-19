@@ -7,5 +7,5 @@
   "issue_tracker": "https://github.com/dancucu/ha-cod-galben/issues",
   "iot_class": "cloud_polling",
   "requirements": [],
-  "version": "1.3.2"
+  "version": "1.3.3"
 }
