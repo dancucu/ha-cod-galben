@@ -1,0 +1,43 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Cod Galben",
+        "description": "Select the Romanian county to monitor for ANM weather warnings (including nowcasting).",
+        "data": {
+          "county": "County"
+        }
+      }
+    },
+    "error": {
+      "invalid_county": "Invalid county."
+    },
+    "abort": {
+      "already_configured": "This county is already configured."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "avertizare_afectat": {
+        "name": "Warning active"
+      },
+      "nowcasting_afectat": {
+        "name": "Nowcasting active"
+      }
+    },
+    "sensor": {
+      "avertizare_nivel": { "name": "Warning level" },
+      "avertizare_fenomene": { "name": "Phenomena" },
+      "avertizare_valabil_de": { "name": "Valid from" },
+      "avertizare_valabil_pana": { "name": "Valid until" },
+      "avertizare_interval": { "name": "Warning interval" },
+      "avertizare_tip": { "name": "Message type" },
+      "avertizare_mesaje": { "name": "Message count" },
+      "nowcasting_nivel": { "name": "Nowcasting level" },
+      "nowcasting_fenomene": { "name": "Nowcasting phenomena" },
+      "nowcasting_valabil_de": { "name": "Nowcasting from" },
+      "nowcasting_valabil_pana": { "name": "Nowcasting until" },
+      "nowcasting_interval": { "name": "Nowcasting interval" }
+    }
+  }
+}

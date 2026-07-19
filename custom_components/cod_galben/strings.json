@@ -1,0 +1,43 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Cod Galben",
+        "description": "Selectează județul pentru care vrei avertizări ANM (inclusiv nowcasting).",
+        "data": {
+          "county": "Județ"
+        }
+      }
+    },
+    "error": {
+      "invalid_county": "Județ invalid."
+    },
+    "abort": {
+      "already_configured": "Acest județ este deja configurat."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "avertizare_afectat": {
+        "name": "Avertizare activă"
+      },
+      "nowcasting_afectat": {
+        "name": "Nowcasting activ"
+      }
+    },
+    "sensor": {
+      "avertizare_nivel": { "name": "Nivel avertizare" },
+      "avertizare_fenomene": { "name": "Fenomene" },
+      "avertizare_valabil_de": { "name": "Valabil de la" },
+      "avertizare_valabil_pana": { "name": "Valabil până la" },
+      "avertizare_interval": { "name": "Interval avertizare" },
+      "avertizare_tip": { "name": "Tip mesaj" },
+      "avertizare_mesaje": { "name": "Număr mesaje" },
+      "nowcasting_nivel": { "name": "Nivel nowcasting" },
+      "nowcasting_fenomene": { "name": "Fenomene nowcasting" },
+      "nowcasting_valabil_de": { "name": "Nowcasting de la" },
+      "nowcasting_valabil_pana": { "name": "Nowcasting până la" },
+      "nowcasting_interval": { "name": "Interval nowcasting" }
+    }
+  }
+}

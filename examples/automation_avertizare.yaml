@@ -1,0 +1,38 @@
+# Notificare telefon — avertizare ANM
+# Exemplu pentru județul Galați. Ajustează entity_id + notify.
+
+alias: Cod Galben — notificare avertizare
+description: >-
+  Notificare când județul selectat este afectat de o avertizare ANM
+  (galben / portocaliu / roșu / informare).
+mode: queued
+max: 5
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.cod_galben_galati_avertizare_activa
+    to: "on"
+conditions: []
+actions:
+  - action: notify.mobile_app_telefonul_tau
+    data:
+      title: >-
+        Cod {{ states('sensor.cod_galben_galati_nivel_avertizare') | title }}
+        — {{ state_attr('binary_sensor.cod_galben_galati_avertizare_activa', 'judet_nume') }}
+      message: >-
+        {{ state_attr('binary_sensor.cod_galben_galati_avertizare_activa', 'tip') }}
+
+        Culoare: {{ states('sensor.cod_galben_galati_nivel_avertizare') }}
+
+        Perioadă: {{ states('sensor.cod_galben_galati_interval_avertizare') }}
+
+        De la: {{ states('sensor.cod_galben_galati_valabil_de_la') }}
+
+        Până la: {{ states('sensor.cod_galben_galati_valabil_pana_la') }}
+
+        Fenomene: {{ states('sensor.cod_galben_galati_fenomene') }}
+      data:
+        ttl: 0
+        priority: high
+        channel: Cod Galben
+        tag: cod_galben_avertizare
+        sticky: true

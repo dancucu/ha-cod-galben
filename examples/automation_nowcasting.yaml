@@ -1,0 +1,35 @@
+# Notificare telefon — nowcasting ANM
+# Exemplu pentru județul Galați. Ajustează entity_id + notify.
+
+alias: Cod Galben — notificare nowcasting
+description: >-
+  Notificare când apare nowcasting pentru județul selectat.
+mode: queued
+max: 5
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.cod_galben_galati_nowcasting_activ
+    to: "on"
+conditions: []
+actions:
+  - action: notify.mobile_app_telefonul_tau
+    data:
+      title: >-
+        Nowcasting {{ states('sensor.cod_galben_galati_nivel_nowcasting') | title }}
+        — {{ state_attr('binary_sensor.cod_galben_galati_nowcasting_activ', 'judet_nume') }}
+      message: >-
+        Culoare: {{ states('sensor.cod_galben_galati_nivel_nowcasting') }}
+
+        Perioadă: {{ states('sensor.cod_galben_galati_interval_nowcasting') }}
+
+        De la: {{ states('sensor.cod_galben_galati_nowcasting_de_la') }}
+
+        Până la: {{ states('sensor.cod_galben_galati_nowcasting_pana_la') }}
+
+        Fenomene: {{ states('sensor.cod_galben_galati_fenomene_nowcasting') }}
+      data:
+        ttl: 0
+        priority: high
+        channel: Cod Galben Nowcasting
+        tag: cod_galben_nowcasting
+        sticky: true

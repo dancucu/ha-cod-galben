@@ -1,0 +1,11 @@
+{
+  "domain": "cod_galben",
+  "name": "Cod Galben",
+  "codeowners": ["@dancucu"],
+  "config_flow": true,
+  "documentation": "https://github.com/dancucu/ha-cod-galben",
+  "issue_tracker": "https://github.com/dancucu/ha-cod-galben/issues",
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "version": "1.0.0"
+}
