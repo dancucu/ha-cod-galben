@@ -48,7 +48,7 @@ Device: `Cod Galben {Județ}`
 | binary_sensor | Nowcasting activ | nowcasting pentru județ |
 | sensor | Nivel / Fenomene / Interval nowcasting | analog |
 
-Atribute utile pe binary sensor / nivel: `warnings` (listă detaliată), `judet`, `judet_nume`.
+Atribute utile pe binary sensor / nivel: `mesaj` (text detaliat ANM), `warnings` (listă cu `mesaj` / `fenomene` / interval per mesaj), `judet`, `judet_nume`.
 
 ## API folosite
 
@@ -65,7 +65,7 @@ Replică stilul cardului din dashboard-ul **Acasă** (ha-lenovo): antet colorat 
 | [`examples/lovelace_card_avertizare_meteo.yaml`](examples/lovelace_card_avertizare_meteo.yaml) | HACS: **button-card**, **fold-entity-row** |
 | [`examples/lovelace_card_markdown.yaml`](examples/lovelace_card_markdown.yaml) | doar Markdown nativ |
 
-Culori antet: galben `#ffde07` / portocaliu `#f09035` / roșu `#ea3323` / informare gri / idle albastru. Expandat: tip, interval, fenomene (+ nowcasting dacă e activ). Tap pe detalii → [meteoromania.ro/avertizari](https://www.meteoromania.ro/avertizari/).
+Culori antet: galben `#ffde07` / portocaliu `#f09035` / roșu `#ea3323` / informare gri / idle albastru. Expandat: tip, interval, fenomene, **detalii** (textul ANM cu temperaturi / precipitații din atributul XML `mesaj`) + nowcasting dacă e activ. Tap pe detalii → [meteoromania.ro/avertizari](https://www.meteoromania.ro/avertizari/).
 
 ## Automatizări
 

@@ -46,7 +46,8 @@ class WarningHit:
     interval_text: str
     zona: str
     judet_codes: list[str]
-    message_excerpt: str
+    mesaj: str
+    message_excerpt: str  # short preview (kept for older Lovelace cards)
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -95,6 +96,36 @@ def _extract_interval_from_mesaj(mesaj: str) -> str:
     if m:
         return m.group(1).strip(" .-")
     return ""
+
+
+_DAY_OR_NARRATIVE_RE = re.compile(
+    r"("
+    r"(?:Luni|Marți|Marti|Miercuri|Joi|Vineri|Sâmbătă|Sambata|Duminică|Duminica"
+    r"|În\s+noaptea|In\s+noaptea|În\s+intervalul|In\s+intervalul"
+    r"|Pe\s+parcursul|Astăzi|Astazi|Mâine|Maine)"
+    r".+"
+    r")",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _extract_descriere_from_mesaj(mesaj: str) -> str:
+    """Narrative body (temps, precip amounts) after ANM structured headers."""
+    text = _strip_html(mesaj)
+    if not text:
+        return ""
+
+    after_zone = re.search(
+        r"Zone afectate:\s*(?:conform textului și hărții\s*)?(.*)$",
+        text,
+        re.IGNORECASE | re.DOTALL,
+    )
+    body = after_zone.group(1).strip(" .-") if after_zone else text
+
+    day = _DAY_OR_NARRATIVE_RE.search(body)
+    if day:
+        return _SPACE_RE.sub(" ", day.group(1)).strip()
+    return _SPACE_RE.sub(" ", body).strip()
 
 
 def _is_informare(tip_mesaj: str, nume_tip: str, nume_culoare: str) -> bool:
@@ -174,7 +205,9 @@ def parse_avertizari_xml(xml_text: str, county: str) -> list[WarningHit]:
         )
         start = _parse_anm_dt(av.get("dataAparitiei"))
         end = _parse_anm_dt(av.get("dataExpirarii"))
-        excerpt = _strip_html(mesaj)[:280]
+        mesaj_text = _strip_html(mesaj)
+        descriere = _extract_descriere_from_mesaj(mesaj) or mesaj_text
+        excerpt = mesaj_text[:280]
 
         informare = _is_informare(tip_mesaj, tip, nume_culoare)
         judete = list(av.findall("judet"))
@@ -199,6 +232,7 @@ def parse_avertizari_xml(xml_text: str, county: str) -> list[WarningHit]:
                     interval_text=interval_text,
                     zona=unescape(av.get("zonaAfectata") or "întreg teritoriul"),
                     judet_codes=codes or [county],
+                    mesaj=descriere,
                     message_excerpt=excerpt,
                 )
             )
@@ -237,6 +271,7 @@ def parse_avertizari_xml(xml_text: str, county: str) -> list[WarningHit]:
                 interval_text=interval_text,
                 zona=unescape(av.get("zonaAfectata") or ""),
                 judet_codes=[county],
+                mesaj=descriere,
                 message_excerpt=excerpt,
             )
         )
@@ -313,6 +348,7 @@ def parse_nowcasting_xml(xml_text: str, county: str) -> list[WarningHit]:
         if start and end:
             interval_text = f"{start.strftime('%d.%m.%Y %H:%M')} – {end.strftime('%d.%m.%Y %H:%M')}"
 
+        fenomene_text = _strip_html(fenomene)
         hits.append(
             WarningHit(
                 source="nowcasting",
@@ -324,7 +360,8 @@ def parse_nowcasting_xml(xml_text: str, county: str) -> list[WarningHit]:
                 interval_text=interval_text,
                 zona=zona,
                 judet_codes=codes or [county],
-                message_excerpt=_strip_html(fenomene)[:280],
+                mesaj=fenomene_text,
+                message_excerpt=fenomene_text[:280],
             )
         )
 
@@ -342,6 +379,7 @@ def summarize_hits(hits: list[WarningHit]) -> dict[str, Any]:
             "valabil_pana": None,
             "interval": None,
             "tip": None,
+            "mesaj": None,
             "count": 0,
             "warnings": [],
         }
@@ -361,6 +399,7 @@ def summarize_hits(hits: list[WarningHit]) -> dict[str, Any]:
         "valabil_pana": primary.end,
         "interval": primary.interval_text or None,
         "tip": primary.tip,
+        "mesaj": primary.mesaj or None,
         "count": len(hits),
         "warnings": [h.as_dict() for h in hits],
     }

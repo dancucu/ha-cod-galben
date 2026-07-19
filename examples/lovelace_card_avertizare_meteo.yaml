@@ -136,7 +136,7 @@ entities:
           };
 
           const resolveMapId = (w, index) => {
-            const excerpt = `${w.message_excerpt || ''} ${w.tip || ''}`;
+            const excerpt = `${w.message_excerpt || ''} ${w.mesaj || ''} ${w.tip || ''}`;
             const m = excerpt.match(/MESAJ\s+(\d+)\s*\/\s*\d+/i);
             if (m && allIds.length) {
               const byIndex = allIds[Number(m[1]) - 1];
@@ -144,6 +144,12 @@ entities:
             }
             return idsForJudet[index] || null;
           };
+
+          const escapeHtml = (s) => String(s || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
 
           if (!bin || bin.state !== 'on' || !warnings.length) {
             return `<div style="opacity:0.75;">Nicio avertizare activă pentru <b>${judet}</b>.</div>`;
@@ -157,13 +163,14 @@ entities:
             const titlu = (w.tip || 'Avertizare').toUpperCase();
             const iv = w.interval_text || interval || '—';
             const fen = w.fenomene || fenomene || '—';
+            const detalii = w.mesaj || w.message_excerpt || '';
             html += `<div style="margin-bottom:16px;border-left:4px solid ${c};padding-left:10px;">`;
             html += `<div style="font-weight:900;color:${c};text-transform:uppercase;margin-bottom:6px;">${titlu}${badge(w.level)}</div>`;
             html += `<div style="margin-bottom:6px;"><b style="color:${c}">Județ:</b> ${judet}</div>`;
             html += `<div style="margin-bottom:6px;"><b style="color:${c}">Interval:</b> ${iv}</div>`;
             html += `<div style="margin-bottom:6px;"><b style="color:${c}">Fenomene:</b> ${fen}</div>`;
-            if (w.message_excerpt) {
-              html += `<div style="opacity:0.85;font-size:12px;margin-top:8px;">${w.message_excerpt}</div>`;
+            if (detalii) {
+              html += `<div style="margin-top:8px;line-height:1.45;font-size:13px;"><b style="color:${c}">Detalii:</b> ${escapeHtml(detalii)}</div>`;
             }
 
             let mapId = resolveMapId(w, i);

@@ -104,6 +104,7 @@ class CodGalbenBinarySensor(CoordinatorEntity[CodGalbenCoordinator], BinarySenso
             "valabil_pana": block.get("valabil_pana"),
             "interval": block.get("interval"),
             "tip": block.get("tip"),
+            "mesaj": block.get("mesaj"),
             "count": block.get("count"),
             "warnings": block.get("warnings"),
             "judet": self.coordinator.county,

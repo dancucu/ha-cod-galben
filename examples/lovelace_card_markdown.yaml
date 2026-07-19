@@ -25,6 +25,11 @@ content: |
   **Până la:** {{ states('sensor.cod_galben_galati_valabil_pana_la') }}
 
   **Fenomene:** {{ states('sensor.cod_galben_galati_fenomene') }}
+
+  {% set warnings = state_attr('binary_sensor.cod_galben_galati_avertizare_activa', 'warnings') or [] %}
+  {% for w in warnings %}
+  **Detalii{% if warnings | length > 1 %} ({{ loop.index }}){% endif %}:** {{ w.mesaj or w.message_excerpt }}
+  {% endfor %}
   {% else %}
   Nicio avertizare activă.
   {% endif %}
