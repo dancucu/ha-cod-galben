@@ -127,13 +127,14 @@ entities:
 
           const mapGis = (id, path) => {
             if (!id || !showGis) return '';
-            // Prefer SVG (img) — iframe/Leaflet CDN fails silently in HA button-card
-            let src = path || `/local/cod_galben/gis_${id}.svg`;
-            if (src.endsWith('.json')) src = src.replace(/\\.json$/i, '.svg');
+            // Leaflet local (OSM tiles) — full Romania framing
+            let src = path || `/local/cod_galben/gis_${id}.json`;
+            if (src.endsWith('.svg')) src = src.slice(0, -4) + '.json';
+            const iframe = `/local/cod_galben/map.html?v=132&src=${encodeURIComponent(src)}`;
             return `<div style="text-align:center;margin-top:8px;margin-bottom:10px;">
-              <div style="font-size:11px;opacity:0.7;margin-bottom:4px;">Hartă GIS (poligoane)</div>
-              <img src="${src}" alt="Hartă GIS ${id}"
-                   style="width:100%;max-width:480px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.25);background:#111;" />
+              <div style="font-size:11px;opacity:0.7;margin-bottom:4px;">Hartă GIS (Leaflet)</div>
+              <iframe src="${iframe}" title="Hartă GIS ${id}" loading="lazy"
+                      style="width:100%;max-width:520px;height:360px;border:0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);background:#fff;"></iframe>
             </div>`;
           };
 

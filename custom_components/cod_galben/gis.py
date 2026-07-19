@@ -134,9 +134,11 @@ def _iter_rings(geometry: dict[str, Any]) -> list[list[list[float]]]:
 def geojson_to_svg(
     geojson: dict[str, Any], *, width: int = 720, height: int = 480, pad: float = 12.0
 ) -> str:
-    """Render FeatureCollection to a standalone SVG (no external deps)."""
+    """Render FeatureCollection to SVG on a full-Romania white canvas (fallback)."""
+    # Fixed Romania bbox (lon/lat) — same framing as official ANM map
+    min_lon, max_lon = 20.15, 29.75
+    min_lat, max_lat = 43.55, 48.30
     features = geojson.get("features") or []
-    all_pts: list[tuple[float, float]] = []
     prepared: list[tuple[dict[str, Any], list[list[list[float]]]]] = []
 
     for feat in features:
@@ -145,59 +147,60 @@ def geojson_to_svg(
         if not rings:
             continue
         prepared.append((feat.get("properties") or {}, rings))
-        for ring in rings:
-            for lon, lat in ring:
-                all_pts.append((float(lon), float(lat)))
 
-    if not all_pts:
-        return (
-            f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">'
-            f'<rect width="100%" height="100%" fill="#1a1a1a"/>'
-            f'<text x="50%" y="50%" fill="#eee" text-anchor="middle">Fără poligoane</text>'
-            f"</svg>"
-        )
-
-    min_lon = min(p[0] for p in all_pts)
-    max_lon = max(p[0] for p in all_pts)
-    min_lat = min(p[1] for p in all_pts)
-    max_lat = max(p[1] for p in all_pts)
-    span_lon = max(max_lon - min_lon, 1e-6)
-    span_lat = max(max_lat - min_lat, 1e-6)
-
+    span_lon = max_lon - min_lon
+    span_lat = max_lat - min_lat
     usable_w = width - 2 * pad
     usable_h = height - 2 * pad
     scale = min(usable_w / span_lon, usable_h / span_lat)
 
     def project(lon: float, lat: float) -> tuple[float, float]:
         x = pad + (lon - min_lon) * scale + (usable_w - span_lon * scale) / 2
-        # SVG y grows downward; flip latitude
         y = pad + (max_lat - lat) * scale + (usable_h - span_lat * scale) / 2
         return x, y
 
-    # Draw non-selected first, selected on top
-    prepared.sort(key=lambda item: bool(item[0].get("isSelected") or item[0].get("isGalati")))
+    prepared.sort(
+        key=lambda item: bool(item[0].get("isSelected") or item[0].get("isGalati"))
+    )
 
     parts: list[str] = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" '
         f'width="{width}" height="{height}" role="img">',
-        '<rect width="100%" height="100%" fill="#111"/>',
+        '<rect width="100%" height="100%" fill="#ffffff"/>',
     ]
 
     for props, rings in prepared:
         name = props.get("culoareNume") or "alt"
         selected = bool(props.get("isSelected") or props.get("isGalati"))
         fill = _FILL.get(name, _FILL["alt"])
-        stroke = "#bf360c" if selected else _EDGE.get(name, _EDGE["alt"])
-        stroke_w = 2.5 if selected else 0.6
-        opacity = 0.85 if selected else 0.45
+        stroke = "#bf360c" if selected else "#333333"
+        stroke_w = 2.2 if selected else 0.5
+        opacity = 0.85 if selected else 0.55
         for ring in rings:
             if len(ring) < 3:
                 continue
-            pts = " ".join(f"{project(lon, lat)[0]:.2f},{project(lon, lat)[1]:.2f}" for lon, lat in ring)
+            pts = " ".join(
+                f"{project(lon, lat)[0]:.2f},{project(lon, lat)[1]:.2f}"
+                for lon, lat in ring
+            )
             parts.append(
                 f'<polygon points="{pts}" fill="{fill}" fill-opacity="{opacity}" '
                 f'stroke="{stroke}" stroke-width="{stroke_w}" stroke-linejoin="round"/>'
             )
+        # one label per județ (centroid of outer ring)
+        if rings and rings[0] and len(rings[0]) >= 3:
+            ring0 = rings[0]
+            xs = [project(lon, lat)[0] for lon, lat in ring0]
+            ys = [project(lon, lat)[1] for lon, lat in ring0]
+            cx, cy = sum(xs) / len(xs), sum(ys) / len(ys)
+            code = props.get("cod_base") or str(props.get("cod") or "").split("_")[0]
+            if code:
+                parts.append(
+                    f'<text x="{cx:.1f}" y="{cy:.1f}" text-anchor="middle" '
+                    f'dominant-baseline="middle" font-size="9" '
+                    f'font-family="system-ui,sans-serif" fill="#222" '
+                    f'font-weight="600">{code}</text>'
+                )
 
     parts.append("</svg>")
     return "".join(parts)
