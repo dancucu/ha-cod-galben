@@ -1,0 +1,25 @@
+# Notificare telefon — avertizare ANM încheiată
+# Exemplu pentru județul Galați. Ajustează entity_id + notify.
+
+alias: Cod Galben — avertizare încheiată
+description: >-
+  Notificare când avertizarea ANM pentru județul selectat nu mai este
+  în vigoare.
+mode: single
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.cod_galben_galati_avertizare_activa
+    from: "on"
+    to: "off"
+conditions: []
+actions:
+  - action: notify.mobile_app_telefonul_tau
+    data:
+      title: ✅ Avertizare meteo încheiată — Galați
+      message: >-
+        Nu mai există avertizare ANM activă pentru județul Galați.
+      data:
+        ttl: 0
+        priority: high
+        channel: Cod Galben
+        tag: cod_galben_avertizare_end

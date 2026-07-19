@@ -1,0 +1,25 @@
+# Notificare telefon — nowcasting ANM încheiat
+# Exemplu pentru județul Galați. Ajustează entity_id + notify.
+
+alias: Cod Galben — nowcasting încheiat
+description: >-
+  Notificare când nowcasting-ul ANM pentru județul selectat nu mai este
+  în vigoare.
+mode: single
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.cod_galben_galati_nowcasting_activ
+    from: "on"
+    to: "off"
+conditions: []
+actions:
+  - action: notify.mobile_app_telefonul_tau
+    data:
+      title: ✅ Nowcasting încheiat — Galați
+      message: >-
+        Nu mai există nowcasting ANM activ pentru județul Galați.
+      data:
+        ttl: 0
+        priority: high
+        channel: Cod Galben Nowcasting
+        tag: cod_galben_nowcasting_end
