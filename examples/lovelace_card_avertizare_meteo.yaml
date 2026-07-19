@@ -127,12 +127,13 @@ entities:
 
           const mapGis = (id, path) => {
             if (!id || !showGis) return '';
-            const src = path || `/local/cod_galben/gis_${id}.json`;
-            const iframe = `/local/cod_galben/map.html?src=${encodeURIComponent(src)}`;
+            // Prefer SVG (img) — iframe/Leaflet CDN fails silently in HA button-card
+            let src = path || `/local/cod_galben/gis_${id}.svg`;
+            if (src.endsWith('.json')) src = src.replace(/\\.json$/i, '.svg');
             return `<div style="text-align:center;margin-top:8px;margin-bottom:10px;">
               <div style="font-size:11px;opacity:0.7;margin-bottom:4px;">Hartă GIS (poligoane)</div>
-              <iframe src="${iframe}" title="Hartă GIS ${id}"
-                      style="width:100%;max-width:480px;height:320px;border:0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.25);background:#111;"></iframe>
+              <img src="${src}" alt="Hartă GIS ${id}"
+                   style="width:100%;max-width:480px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.25);background:#111;" />
             </div>`;
           };
 

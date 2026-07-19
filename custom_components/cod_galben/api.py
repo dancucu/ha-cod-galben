@@ -92,7 +92,7 @@ def assign_map_ids(hits: list[WarningHit], map_ids: list[str]) -> None:
         if 0 <= idx < len(map_ids):
             hit.map_id = map_ids[idx]
             hit.map_url = URL_HARTA_SVG.format(id=hit.map_id)
-            hit.gis_map_path = f"/local/cod_galben/gis_{hit.map_id}.json"
+            hit.gis_map_path = f"/local/cod_galben/gis_{hit.map_id}.svg"
 
 
 def _strip_html(raw: str) -> str:

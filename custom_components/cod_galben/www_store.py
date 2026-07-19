@@ -1,4 +1,4 @@
-"""Persist GIS GeoJSON + Leaflet viewer under Home Assistant www/."""
+"""Persist GIS GeoJSON + SVG + viewer under Home Assistant www/."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 
 from .api import WarningHit
 from .const import WWW_GIS_DIR, WWW_GIS_MAP_HTML
+from .gis import geojson_to_svg
 from .www_assets import MAP_HTML
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ async def async_ensure_gis_assets(hass: HomeAssistant) -> Path:
 async def async_write_warning_geojson(
     hass: HomeAssistant, hits: list[WarningHit]
 ) -> None:
-    """Write gis_{map_id}.json for hits that have geojson + map_id."""
+    """Write gis_{map_id}.json + .svg for hits that have geojson."""
 
     def _write() -> None:
         target = www_gis_dir(hass)
@@ -46,14 +47,20 @@ async def async_write_warning_geojson(
             if not hit.geojson:
                 continue
             key = hit.map_id or f"idx_{written}"
-            path = target / f"gis_{key}.json"
-            path.write_text(
+            json_path = target / f"gis_{key}.json"
+            svg_path = target / f"gis_{key}.svg"
+            json_path.write_text(
                 json.dumps(hit.geojson, ensure_ascii=False, separators=(",", ":")),
                 encoding="utf-8",
             )
-            hit.gis_map_path = f"/local/{WWW_GIS_DIR}/gis_{key}.json"
+            svg_path.write_text(
+                geojson_to_svg(hit.geojson),
+                encoding="utf-8",
+            )
+            # Card uses SVG like official ANM maps (img), not iframe
+            hit.gis_map_path = f"/local/{WWW_GIS_DIR}/gis_{key}.svg"
             written += 1
-        _LOGGER.debug("Wrote %s GIS geojson file(s) to %s", written, target)
+        _LOGGER.debug("Wrote %s GIS map file(s) to %s", written, target)
 
     await hass.async_add_executor_job(_write)
 
