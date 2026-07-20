@@ -158,6 +158,22 @@ entities:
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
 
+          const mesajLabel = (w, index, total) => {
+            let nr = w.mesaj_nr;
+            let tot = w.mesaj_total;
+            if (!nr || !tot) {
+              const blob = `${w.message_excerpt || ''} ${w.mesaj || ''} ${w.tip || ''}`;
+              const m = blob.match(/MESAJ\s+(\d+)\s*\/\s*(\d+)/i);
+              if (m) {
+                nr = Number(m[1]);
+                tot = Number(m[2]);
+              }
+            }
+            if (nr && tot) return `Mesaj ${nr}/${tot}`;
+            if (total > 1) return `Mesaj ${index + 1}/${total}`;
+            return '';
+          };
+
           if (!bin || bin.state !== 'on' || !warnings.length) {
             return `<div style="opacity:0.75;">Nicio avertizare activă pentru <b>${judet}</b>.</div>`;
           }
@@ -171,8 +187,9 @@ entities:
             const iv = w.interval_text || interval || '—';
             const fen = w.fenomene || fenomene || '—';
             const detalii = w.mesaj || w.message_excerpt || '';
+            const mesaj = mesajLabel(w, i, warnings.length);
             html += `<div style="margin-bottom:16px;border-left:4px solid ${c};padding-left:10px;">`;
-            html += `<div style="font-weight:900;color:${c};text-transform:uppercase;margin-bottom:6px;">${titlu}${badge(w.level)}</div>`;
+            html += `<div style="font-weight:900;color:${c};text-transform:uppercase;margin-bottom:6px;">${titlu}${badge(w.level)}${mesaj ? `<span style="opacity:0.85;margin-left:8px;font-size:12px;font-weight:700;">${mesaj}</span>` : ''}</div>`;
             html += `<div style="margin-bottom:6px;"><b style="color:${c}">Județ:</b> ${judet}</div>`;
             html += `<div style="margin-bottom:6px;"><b style="color:${c}">Interval:</b> ${iv}</div>`;
             html += `<div style="margin-bottom:6px;"><b style="color:${c}">Fenomene:</b> ${fen}</div>`;

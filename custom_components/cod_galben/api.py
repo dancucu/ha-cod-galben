@@ -50,6 +50,8 @@ class WarningHit:
     judet_codes: list[str]
     mesaj: str
     message_excerpt: str  # short preview (kept for older Lovelace cards)
+    mesaj_nr: int | None = None  # e.g. 1 from "MESAJ 1/4"
+    mesaj_total: int | None = None  # e.g. 4 from "MESAJ 1/4"
     map_id: str | None = None  # ANM harta.svg.php?id_avertizare=
     map_url: str | None = None
     gis_map_path: str | None = None  # /local/cod_galben/gis_{id}.json
@@ -63,7 +65,15 @@ class WarningHit:
 
 
 _MAP_ID_RE = re.compile(r"id_avertizare=(\d+)")
-_MESAJ_NUM_RE = re.compile(r"MESAJ\s+(\d+)\s*/\s*\d+", re.IGNORECASE)
+_MESAJ_NUM_RE = re.compile(r"MESAJ\s+(\d+)\s*/\s*(\d+)", re.IGNORECASE)
+
+
+def _parse_mesaj_index(text: str) -> tuple[int, int] | None:
+    """Return (nr, total) from ANM 'MESAJ N/M' in message text."""
+    m = _MESAJ_NUM_RE.search(text or "")
+    if not m:
+        return None
+    return int(m.group(1)), int(m.group(2))
 
 
 def extract_map_ids_from_html(html: str) -> list[str]:
@@ -250,6 +260,9 @@ def parse_avertizari_xml(xml_text: str, county: str) -> list[WarningHit]:
         mesaj_text = _strip_html(mesaj)
         descriere = _extract_descriere_from_mesaj(mesaj) or mesaj_text
         excerpt = mesaj_text[:280]
+        mesaj_index = _parse_mesaj_index(mesaj_text) or _parse_mesaj_index(excerpt)
+        mesaj_nr = mesaj_index[0] if mesaj_index else None
+        mesaj_total = mesaj_index[1] if mesaj_index else None
 
         informare = _is_informare(tip_mesaj, tip, nume_culoare)
         judete = list(av.findall("judet"))
@@ -277,6 +290,8 @@ def parse_avertizari_xml(xml_text: str, county: str) -> list[WarningHit]:
                     judet_codes=codes or [county],
                     mesaj=descriere,
                     message_excerpt=excerpt,
+                    mesaj_nr=mesaj_nr,
+                    mesaj_total=mesaj_total,
                     geojson=geojson,
                 )
             )
@@ -317,6 +332,8 @@ def parse_avertizari_xml(xml_text: str, county: str) -> list[WarningHit]:
                 judet_codes=[county],
                 mesaj=descriere,
                 message_excerpt=excerpt,
+                mesaj_nr=mesaj_nr,
+                mesaj_total=mesaj_total,
                 geojson=geojson,
             )
         )
