@@ -16,6 +16,18 @@
       "already_configured": "This county is already configured."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Cod Galben options",
+        "description": "Choose how maps are shown on the Lovelace card (change anytime).",
+        "data": {
+          "map_style": "Card map type",
+          "gis_basemap": "GIS (Leaflet) basemap"
+        }
+      }
+    }
+  },
   "entity": {
     "binary_sensor": {
       "avertizare_afectat": {

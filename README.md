@@ -32,6 +32,53 @@ Settings → Devices & Services → Add Integration → **Cod Galben** → alege
 
 Poți adăuga integrarea de mai multe ori (câte un județ per entry).
 
+### Stil hartă (opțiuni)
+
+După instalare: **Settings → Devices & Services → Cod Galben → Configure**.
+
+Aici alegi **ce tip de hartă** apare pe cardul Lovelace și, pentru Leaflet, **ce fundal** folosește.
+
+#### 1. Tip hartă pe card (`map_style`)
+
+| Opțiune în UI | Valoare | Ce afișează cardul |
+|---------------|---------|-------------------|
+| **Hartă oficială ANM (SVG)** | `oficial` | harta SVG ANM (ca pe meteoromania.ro) — *default* |
+| **Hartă GIS (Leaflet)** | `gis` | poligoane din `coordGis` pe hartă Leaflet interactivă |
+| **Ambele (oficial + GIS)** | `ambele` | SVG oficial + hartă Leaflet, una sub alta |
+
+#### 2. Fundal hartă GIS / Leaflet (`gis_basemap`)
+
+Relevant doar când tipul e **GIS** sau **Ambele**:
+
+| Opțiune în UI | Valoare | Fundal |
+|---------------|---------|--------|
+| **OpenStreetMap (stil leafletjs.com)** | `osm` | tiles OSM clasice — *default* |
+| **Relief (OpenTopoMap)** | `topo` | relief / topo |
+
+Exemplu tipic: tip **Hartă GIS (Leaflet)** + fundal **OpenStreetMap**.
+
+#### Cum ajunge setarea pe card
+
+1. Configurezi opțiunile în integrare (pașii de mai sus).
+2. Pe `binary_sensor.cod_galben_<judet>_avertizare_activa` apar atributele:
+   - `map_style` — `oficial` / `gis` / `ambele`
+   - `gis_basemap` — `osm` / `topo`
+3. Cardul din [`examples/lovelace_card_avertizare_meteo.yaml`](examples/lovelace_card_avertizare_meteo.yaml) citește aceste atribute și:
+   - arată/ascunde SVG-ul oficial și/sau iframe-ul Leaflet;
+   - trece fundalul în viewer: `/local/cod_galben/map.html?tiles=osm|topo&src=...`.
+
+Dacă schimbi opțiunile și cardul nu se actualizează, reîncarcă dashboard-ul (sau forțează refresh pe browser).
+
+#### Fișiere generate
+
+Integrarea scrie sub `/config/www/cod_galben/`:
+
+- `gis_{id}.json` — GeoJSON (inclusiv zone munte din SVG ANM, când e cazul)
+- `map.html` — viewer Leaflet (local, fără CDN)
+- `romania.geojson`, Leaflet JS/CSS — assets pentru hartă
+
+Harta GIS acoperă toată România; județul monitorizat e evidențiat cu contur discret.
+
 ## Entități
 
 Device: `Cod Galben {Județ}`
@@ -48,7 +95,7 @@ Device: `Cod Galben {Județ}`
 | binary_sensor | Nowcasting activ | nowcasting pentru județ |
 | sensor | Nivel / Fenomene / Interval nowcasting | analog |
 
-Atribute utile pe binary sensor / nivel: `mesaj` (text detaliat ANM), `warnings` (listă cu `mesaj` / `fenomene` / interval per mesaj), `judet`, `judet_nume`.
+Atribute utile pe binary sensor / nivel: `mesaj` (text detaliat ANM), `warnings` (listă cu `mesaj` / `fenomene` / interval per mesaj), `judet`, `judet_nume`, `map_style`, `gis_basemap`, `map_ids`.
 
 ## API folosite
 
@@ -65,7 +112,7 @@ Replică stilul cardului din dashboard-ul **Acasă** (ha-lenovo): antet colorat 
 | [`examples/lovelace_card_avertizare_meteo.yaml`](examples/lovelace_card_avertizare_meteo.yaml) | HACS: **button-card**, **fold-entity-row** |
 | [`examples/lovelace_card_markdown.yaml`](examples/lovelace_card_markdown.yaml) | doar Markdown nativ |
 
-Culori antet: galben `#ffde07` / portocaliu `#f09035` / roșu `#ea3323` / informare gri / idle albastru. Expandat: tip, interval, fenomene, **detalii** (textul ANM cu temperaturi / precipitații din atributul XML `mesaj`) + nowcasting dacă e activ. Tap pe detalii → [meteoromania.ro/avertizari](https://www.meteoromania.ro/avertizari/).
+Culori antet: galben `#ffde07` / portocaliu `#f09035` / roșu `#ea3323` / informare gri / idle albastru. Expandat: tip, interval, fenomene, **detalii** (textul ANM cu temperaturi / precipitații din atributul XML `mesaj`) + hărți conform opțiunilor din Configure + nowcasting dacă e activ. Tap pe detalii → [meteoromania.ro/avertizari](https://www.meteoromania.ro/avertizari/).
 
 ## Automatizări
 

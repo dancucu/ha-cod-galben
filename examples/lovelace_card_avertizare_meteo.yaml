@@ -7,8 +7,10 @@
 # Exemplu pentru județul Galați. Înlocuiește „galati” în entity_id
 # cu slug-ul județului tău (Developer Tools → States).
 #
-# Poți lipi acest bloc într-o secțiune Lovelace (Manual) sau
-# ca resursă YAML.
+# Stil hartă: Settings → Devices → Cod Galben → Configure
+#   Tip hartă: oficial | gis | ambele
+#   Fundal GIS: osm (OpenStreetMap) | topo (relief OpenTopoMap)
+# Cardul citește map_style + gis_basemap de pe binary_sensor.
 
 type: custom:fold-entity-row
 padding: 0
@@ -104,17 +106,38 @@ entities:
             return '';
           };
 
+          // Stil hartă din opțiuni integrare
+          const mapStyle = (bin?.attributes?.map_style || 'oficial').toLowerCase();
+          const gisBasemap = (bin?.attributes?.gis_basemap || 'osm').toLowerCase();
+          const showOficial = mapStyle === 'oficial' || mapStyle === 'ambele';
+          const showGis = mapStyle === 'gis' || mapStyle === 'ambele';
+
           // Hărți ANM: map_id pe fiecare warning (Cod Galben) + /local/harta_anm_{id}.svg
           const allIds = (bin?.attributes?.map_ids || []).map(String);
 
           const mapImg = (id) => {
-            if (!id) return '';
+            if (!id || !showOficial) return '';
             const local = `/local/harta_anm_${id}.svg`;
             const remote = `https://images.weserv.nl/?url=www.meteoromania.ro%2Fwp-content%2Fplugins%2Fmeteo%2Fharti%2Fharta.svg.php%3Fid_avertizare%3D${id}`;
-            return `<div style="text-align:center;margin-top:10px;margin-bottom:10px;">
+            return `<div style="text-align:center;margin-top:10px;margin-bottom:6px;">
+              <div style="font-size:11px;opacity:0.7;margin-bottom:4px;">Hartă oficială ANM</div>
               <img src="${local}" onerror="this.onerror=null;this.src='${remote}';"
                    alt="Hartă ANM ${id}"
                    style="width:100%;max-width:480px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.25);" />
+            </div>`;
+          };
+
+          const mapGis = (id, path) => {
+            if (!id || !showGis) return '';
+            let src = path || `/local/cod_galben/gis_${id}.json`;
+            if (src.endsWith('.svg')) src = src.slice(0, -4) + '.json';
+            const tiles = (gisBasemap === 'topo') ? 'topo' : 'osm';
+            const iframe = `/local/cod_galben/map.html?v=1.3.10&tiles=${tiles}&src=${encodeURIComponent(src)}`;
+            const label = tiles === 'topo' ? 'Hartă GIS (relief)' : 'Hartă GIS (Leaflet / OSM)';
+            return `<div style="text-align:center;margin-top:8px;margin-bottom:10px;">
+              <div style="font-size:11px;opacity:0.7;margin-bottom:4px;">${label}</div>
+              <iframe src="${iframe}" title="Hartă GIS ${id}" loading="lazy"
+                      style="width:100%;max-width:520px;height:360px;border:0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);background:#fff;"></iframe>
             </div>`;
           };
 
@@ -164,6 +187,7 @@ entities:
             if (mapId && (w.level || '').toLowerCase() !== 'informare') {
               usedIds.add(mapId);
               html += mapImg(mapId);
+              html += mapGis(mapId, w.gis_map_path);
             }
             html += `</div>`;
           }
