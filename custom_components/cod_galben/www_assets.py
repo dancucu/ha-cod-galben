@@ -11,7 +11,7 @@ MAP_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Cod Galben — hartă GIS v1.3.10</title>
+<title>Cod Galben — hartă GIS v1.3.11</title>
 <link rel="stylesheet" href="leaflet.css"/>
 <style>
   html, body { margin:0; height:100%; background:#fff; }
@@ -26,8 +26,8 @@ MAP_HTML = """<!DOCTYPE html>
 <script src="leaflet.js"></script>
 <script>
 (async function () {
-  const FILL = { galben:'#ffde07', portocaliu:'#f09035', rosu:'#ea3323', alt:'#cfd8dc' };
-  const EDGE = { galben:'#c9b000', portocaliu:'#c56e18', rosu:'#c62828', alt:'#90a4ae' };
+  const FILL = { galben:'#ffde07', portocaliu:'#f09035', rosu:'#ea3323', informare:'#9e9e9e', alt:'#cfd8dc' };
+  const EDGE = { galben:'#c9b000', portocaliu:'#c56e18', rosu:'#c62828', informare:'#757575', alt:'#90a4ae' };
   const FILL_OPACITY = 0.45;
   const ROMANIA = L.latLngBounds([43.55, 20.15], [48.30, 29.75]);
 

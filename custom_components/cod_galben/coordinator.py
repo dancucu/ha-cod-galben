@@ -34,7 +34,7 @@ from .const import (
     URL_NOWCASTING_GIS,
     county_label,
 )
-from .svg_overlays import merge_svg_overlays_into_geojson
+from .svg_overlays import build_county_geojson_from_svg, merge_svg_overlays_into_geojson
 from .www_store import (
     async_ensure_gis_assets,
     async_write_warning_geojson,
@@ -142,10 +142,10 @@ class CodGalbenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_enrich_hits_with_svg_overlays(
         self, session: aiohttp.ClientSession, hits: list
     ) -> None:
-        """Fetch ANM SVG per map_id and overlay mountain zones onto geojson."""
+        """Fetch ANM SVG per map_id; fill missing geojson + mountain overlays."""
         cache: dict[str, str] = {}
         for hit in hits:
-            if not hit.geojson or not hit.map_id:
+            if not hit.map_id:
                 continue
             map_id = str(hit.map_id)
             if map_id not in cache:
@@ -157,6 +157,24 @@ class CodGalbenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     cache[map_id] = ""
             svg_text = cache[map_id]
             if not svg_text:
+                continue
+
+            # National informare (and similar) often has no <judet coordGis>
+            if not hit.geojson:
+                built = build_county_geojson_from_svg(
+                    svg_text,
+                    selected_county=self.county,
+                    default_level=hit.level or "informare",
+                )
+                if built:
+                    hit.geojson = built
+                    _LOGGER.debug(
+                        "SVG county geojson for map %s: %s features",
+                        map_id,
+                        len(built.get("features") or []),
+                    )
+
+            if not hit.geojson:
                 continue
             before = len(hit.geojson.get("features") or [])
             hit.geojson = merge_svg_overlays_into_geojson(

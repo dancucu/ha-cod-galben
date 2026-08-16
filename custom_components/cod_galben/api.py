@@ -95,10 +95,15 @@ def assign_map_ids(hits: list[WarningHit], map_ids: list[str]) -> None:
     for hit in hits:
         if hit.source != "avertizare":
             continue
-        m = _MESAJ_NUM_RE.search(hit.message_excerpt or "")
-        if not m:
-            continue
-        idx = int(m.group(1)) - 1
+        nr = hit.mesaj_nr
+        if nr is None:
+            m = _MESAJ_NUM_RE.search(hit.message_excerpt or "") or _MESAJ_NUM_RE.search(
+                hit.mesaj or ""
+            )
+            if not m:
+                continue
+            nr = int(m.group(1))
+        idx = nr - 1
         if 0 <= idx < len(map_ids):
             hit.map_id = map_ids[idx]
             hit.map_url = URL_HARTA_SVG.format(id=hit.map_id)

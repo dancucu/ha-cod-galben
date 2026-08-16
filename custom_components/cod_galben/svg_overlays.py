@@ -142,6 +142,90 @@ def extract_visible_overlays(svg_text: str) -> list[dict[str, Any]]:
     return overlays
 
 
+def build_county_geojson_from_svg(
+    svg_text: str,
+    selected_county: str | None = None,
+    *,
+    default_level: str = "informare",
+) -> dict[str, Any] | None:
+    """Build county FeatureCollection from ANM SVG when XML has no coordGis.
+
+    Projects path coordinates using the SVG viewBox onto a fixed Romania WGS84
+    bbox (same framing as geojson_to_svg). Used for national informare messages
+    that list no <judet> polygons.
+    """
+    if not svg_text:
+        return None
+
+    vb = re.search(r'viewBox="([^"]+)"', svg_text)
+    if not vb:
+        return None
+    try:
+        vx0, vy0, vw, vh = (float(x) for x in vb.group(1).split())
+    except ValueError:
+        return None
+    if vw <= 0 or vh <= 0:
+        return None
+
+    # Match geojson_to_svg / Leaflet ROMANIA bounds
+    min_lon, max_lon = 20.15, 29.75
+    min_lat, max_lat = 43.55, 48.30
+    selected = (selected_county or "").upper()
+    features: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    for m in re.finditer(r"<path\s([^>]*)/?>", svg_text):
+        attrs = _parse_attrs(m.group(1))
+        cls = attrs.get("class") or ""
+        if not re.search(r"\bjudet\b", cls):
+            continue
+        if re.search(r"\b(munte|litoral|alt\d+|depresiune)\b", cls):
+            continue
+        cod = (attrs.get("data-judet") or "").upper().split("_", 1)[0]
+        if not cod or cod in seen:
+            continue
+        cod_m = _COD_RE.search(cls)
+        if cod_m:
+            level = _SVG_COD_TO_LEVEL.get(cod_m.group(1), default_level)
+        else:
+            # Informare maps often omit codN on every county — still paint them
+            level = default_level
+        pts = _parse_svg_path_points(attrs.get("d") or "")
+        if len(pts) < 4:
+            continue
+        ring = [
+            [
+                min_lon + (x - vx0) / vw * (max_lon - min_lon),
+                max_lat - (y - vy0) / vh * (max_lat - min_lat),
+            ]
+            for x, y in pts
+        ]
+        if ring[0] != ring[-1]:
+            ring.append(ring[0])
+        seen.add(cod)
+        is_selected = cod == selected
+        features.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "cod": cod,
+                    "cod_base": cod,
+                    "nume": cod,
+                    "culoare": cod_m.group(1) if cod_m else "0",
+                    "culoareNume": level,
+                    "isSelected": is_selected,
+                    "isGalati": is_selected,
+                    "fromSvg": True,
+                },
+                "geometry": {"type": "Polygon", "coordinates": [ring]},
+            }
+        )
+
+    if not features:
+        return None
+    return {"type": "FeatureCollection", "features": features}
+
+
 def merge_svg_overlays_into_geojson(
     geojson: dict[str, Any], svg_text: str, selected_county: str | None = None
 ) -> dict[str, Any]:

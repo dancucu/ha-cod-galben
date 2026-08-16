@@ -18,12 +18,14 @@ _FILL = {
     "galben": "#fdd835",
     "portocaliu": "#fb8c00",
     "rosu": "#e53935",
+    "informare": "#9e9e9e",
     "alt": "#9e9e9e",
 }
 _EDGE = {
     "galben": "#f9a825",
     "portocaliu": "#ef6c00",
     "rosu": "#b71c1c",
+    "informare": "#757575",
     "alt": "#757575",
 }
 
