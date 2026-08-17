@@ -13,7 +13,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, LEVEL_ICONS, county_label
+from .const import DOMAIN, LEVEL_ICONS, county_highlight_data, county_label
 from .coordinator import CodGalbenCoordinator
 
 BINARY_SENSORS = (
@@ -98,6 +98,7 @@ class CodGalbenBinarySensor(CoordinatorEntity[CodGalbenCoordinator], BinarySenso
         )
         block = (self.coordinator.data or {}).get(bucket) or {}
         data = self.coordinator.data or {}
+        highlight = county_highlight_data(self.coordinator.county)
         return {
             "nivel": block.get("nivel"),
             "fenomene": block.get("fenomene"),
@@ -108,9 +109,12 @@ class CodGalbenBinarySensor(CoordinatorEntity[CodGalbenCoordinator], BinarySenso
             "mesaj": block.get("mesaj"),
             "count": block.get("count"),
             "map_ids": block.get("map_ids") or data.get("map_ids") or [],
-            "map_style": data.get("map_style") or self.coordinator.map_style,
-            "gis_basemap": data.get("gis_basemap") or self.coordinator.gis_basemap,
+            "map_style": self.coordinator.map_style,
+            "gis_basemap": self.coordinator.gis_basemap,
             "warnings": block.get("warnings"),
             "judet": self.coordinator.county,
             "judet_nume": self.coordinator.county_name,
+            "regiune": highlight["regiune"],
+            "highlight_names": highlight["highlight_names"],
+            "highlight_bare_names": highlight["highlight_bare_names"],
         }

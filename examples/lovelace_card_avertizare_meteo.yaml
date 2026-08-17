@@ -115,14 +115,15 @@ entities:
           // Hărți ANM: map_id pe fiecare warning (Cod Galben) + /local/harta_anm_{id}.svg
           const allIds = (bin?.attributes?.map_ids || []).map(String);
 
-          const mapImg = (id) => {
+          const mapImg = (id, path) => {
             if (!id || !showOficial) return '';
-            const local = `/local/harta_anm_${id}.svg`;
-            const remote = `https://images.weserv.nl/?url=www.meteoromania.ro%2Fwp-content%2Fplugins%2Fmeteo%2Fharti%2Fharta.svg.php%3Fid_avertizare%3D${id}`;
+            const local = `${(path || `/local/cod_galben/harta_anm_${id}.svg`).split('?')[0]}?v=1.3.7`;
+            const legacy = `/local/harta_anm_${id}.svg?v=1.3.7`;
             return `<div style="text-align:center;margin-top:10px;margin-bottom:6px;">
               <div style="font-size:11px;opacity:0.7;margin-bottom:4px;">Hartă oficială ANM</div>
-              <img src="${local}" onerror="this.onerror=null;this.src='${remote}';"
-                   alt="Hartă ANM ${id}"
+              <img src="${local}"
+                   onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src='${legacy}';}else{this.onerror=null;}"
+                   alt="Hartă oficială ANM"
                    style="width:100%;max-width:480px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.25);" />
             </div>`;
           };
@@ -157,6 +158,50 @@ entities:
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
+
+          // Bold + warning colour for this county / its ANM subregion
+          // (GL: sudul Moldovei — not nord-estul Moldovei).
+          const highlightLocal = (text, color, names, bareNames) => {
+            const escaped = escapeHtml(text);
+            if (!escaped) return '';
+            const skipBefore = /(?:nord-estul|nord-vestul|sud-estul|sud-vestul|nordul|sudul|estul|vestul)\s+$/i;
+            const isWord = (ch) => ch && /[0-9A-Za-zĂÂÎȘȚăâîșțŞşŢţ]/.test(ch);
+            const all = [];
+            (names || []).forEach((n) => { const s = String(n || '').trim(); if (s) all.push({ s, bare: false }); });
+            (bareNames || []).forEach((n) => { const s = String(n || '').trim(); if (s) all.push({ s, bare: true }); });
+            all.sort((a, b) => b.s.length - a.s.length);
+            const ranges = [];
+            const lower = escaped.toLowerCase();
+            for (const item of all) {
+              const needle = escapeHtml(item.s);
+              const nl = needle.toLowerCase();
+              if (!nl) continue;
+              let from = 0;
+              while (from <= lower.length - nl.length) {
+                const idx = lower.indexOf(nl, from);
+                if (idx < 0) break;
+                from = idx + 1;
+                const beforeCh = idx === 0 ? '' : escaped[idx - 1];
+                const afterCh = idx + needle.length >= escaped.length ? '' : escaped[idx + needle.length];
+                if (isWord(beforeCh) || isWord(afterCh)) continue;
+                if (ranges.some((r) => !(idx + needle.length <= r.start || idx >= r.end))) continue;
+                if (item.bare) {
+                  const prefix = escaped.slice(Math.max(0, idx - 24), idx);
+                  if (skipBefore.test(prefix)) continue;
+                }
+                ranges.push({ start: idx, end: idx + needle.length });
+              }
+            }
+            ranges.sort((a, b) => a.start - b.start);
+            let out = '';
+            let cursor = 0;
+            const open = `<b style="color:${color};font-weight:800;">`;
+            for (const r of ranges) {
+              out += escaped.slice(cursor, r.start) + open + escaped.slice(r.start, r.end) + '</b>';
+              cursor = r.end;
+            }
+            return out + escaped.slice(cursor);
+          };
 
           const mesajLabel = (w, index, total) => {
             let nr = w.mesaj_nr;
@@ -194,7 +239,11 @@ entities:
             html += `<div style="margin-bottom:6px;"><b style="color:${c}">Interval:</b> ${iv}</div>`;
             html += `<div style="margin-bottom:6px;"><b style="color:${c}">Fenomene:</b> ${fen}</div>`;
             if (detalii) {
-              html += `<div style="margin-top:8px;line-height:1.45;font-size:13px;"><b style="color:${c}">Detalii:</b> ${escapeHtml(detalii)}</div>`;
+              const hlNames = bin?.attributes?.highlight_names || [
+                'sud-estul Moldovei', 'sudul Moldovei', 'Galațiului', 'Galatiului', judet, 'Galati',
+              ];
+              const hlBare = bin?.attributes?.highlight_bare_names || ['Moldovei', 'Moldova'];
+              html += `<div style="margin-top:8px;line-height:1.45;font-size:13px;"><b style="color:${c}">Detalii:</b> ${highlightLocal(detalii, c, hlNames, hlBare)}</div>`;
             }
 
             let mapId = resolveMapId(w, i);
@@ -203,7 +252,7 @@ entities:
             }
             if (mapId) {
               usedIds.add(mapId);
-              html += mapImg(mapId);
+              html += mapImg(mapId, w.official_map_path);
               // GIS only when the integration wrote /local/cod_galben/gis_{id}.json
               if (w.gis_map_path) {
                 html += mapGis(mapId, w.gis_map_path);

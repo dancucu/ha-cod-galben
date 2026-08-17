@@ -29,6 +29,7 @@ content: |
   {% set warnings = state_attr('binary_sensor.cod_galben_galati_avertizare_activa', 'warnings') or [] %}
   {% for w in warnings %}
   **Mesaj{% if w.mesaj_nr and w.mesaj_total %} {{ w.mesaj_nr }}/{{ w.mesaj_total }}{% elif warnings | length > 1 %} {{ loop.index }}/{{ warnings | length }}{% endif %} — Detalii:** {{ w.mesaj or w.message_excerpt }}
+  {# Evidențiere județ/subregiune: vezi cardul button-card (lovelace_card_avertizare_meteo.yaml). #}
   {% endfor %}
   {% else %}
   Nicio avertizare activă.
