@@ -37,8 +37,12 @@ from .const import (
 from .svg_overlays import build_county_geojson_from_svg, merge_svg_overlays_into_geojson
 from .www_store import (
     async_ensure_gis_assets,
+    async_write_official_svgs,
     async_write_warning_geojson,
     clear_geojson_from_summary,
+    official_svg_on_disk,
+    official_svg_local_url,
+    read_official_svg,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -66,11 +70,28 @@ class CodGalbenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def gis_basemap(self) -> str:
         return self.entry.options.get(CONF_GIS_BASEMAP, GIS_BASEMAP_DEFAULT)
 
-    async def _async_fetch_text(self, session: aiohttp.ClientSession, url: str) -> str:
-        async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+    async def _async_fetch_text(
+        self, session: aiohttp.ClientSession, url: str, timeout: int = 30
+    ) -> str:
+        async with session.get(
+            url, timeout=aiohttp.ClientTimeout(total=timeout)
+        ) as resp:
             if resp.status != 200:
                 raise UpdateFailed(f"HTTP {resp.status} for {url}")
             return await resp.text()
+
+    async def _async_svg_for_map_id(
+        self, session: aiohttp.ClientSession, map_id: str
+    ) -> str:
+        """Official ANM SVG: local file if already downloaded, else fetch."""
+        if official_svg_on_disk(self.hass, map_id):
+            text = await self.hass.async_add_executor_job(
+                read_official_svg, self.hass, map_id
+            )
+            if text:
+                return text
+        url = URL_HARTA_SVG.format(id=map_id)
+        return await self._async_fetch_text(session, url, timeout=90)
 
     async def _async_update_data(self) -> dict[str, Any]:
         session = async_get_clientsession(self.hass)
@@ -115,12 +136,29 @@ class CodGalbenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.warning("Avertizări page (map IDs) fetch failed: %s", err)
 
         assign_map_ids(avertizare_hits, map_ids)
+        for hit in avertizare_hits:
+            if hit.map_id:
+                hit.official_map_path = official_svg_local_url(str(hit.map_id))
 
         # Official SVG paints mountain/litoral sub-zones (e.g. BZ_munte=portocaliu)
         # that are missing from XML county polygons — merge them into GIS GeoJSON.
-        await self._async_enrich_hits_with_svg_overlays(session, avertizare_hits)
+        svg_cache = await self._async_enrich_hits_with_svg_overlays(
+            session, avertizare_hits
+        )
+        needed_ids = {str(mid) for mid in map_ids} | {
+            str(h.map_id) for h in avertizare_hits if h.map_id
+        }
+        for key in needed_ids:
+            if key in svg_cache:
+                continue
+            try:
+                svg_cache[key] = await self._async_svg_for_map_id(session, key)
+            except (aiohttp.ClientError, TimeoutError, UpdateFailed) as err:
+                _LOGGER.warning("Official SVG fetch failed for %s: %s", key, err)
+                svg_cache[key] = ""
 
-        # Persist Leaflet assets + GeoJSON under /config/www/cod_galben/
+        # Persist official ANM SVG + Leaflet assets + GeoJSON under www/
+        await async_write_official_svgs(self.hass, svg_cache)
         await async_ensure_gis_assets(self.hass)
         await async_write_warning_geojson(self.hass, avertizare_hits)
 
@@ -141,7 +179,7 @@ class CodGalbenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_enrich_hits_with_svg_overlays(
         self, session: aiohttp.ClientSession, hits: list
-    ) -> None:
+    ) -> dict[str, str]:
         """Fetch ANM SVG per map_id; fill missing geojson + mountain overlays."""
         cache: dict[str, str] = {}
         for hit in hits:
@@ -149,9 +187,8 @@ class CodGalbenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 continue
             map_id = str(hit.map_id)
             if map_id not in cache:
-                url = URL_HARTA_SVG.format(id=map_id)
                 try:
-                    cache[map_id] = await self._async_fetch_text(session, url)
+                    cache[map_id] = await self._async_svg_for_map_id(session, map_id)
                 except (aiohttp.ClientError, TimeoutError, UpdateFailed) as err:
                     _LOGGER.warning("SVG overlay fetch failed for %s: %s", map_id, err)
                     cache[map_id] = ""
@@ -185,3 +222,4 @@ class CodGalbenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.debug(
                     "SVG overlays for map %s: +%s features", map_id, after - before
                 )
+        return cache

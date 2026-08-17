@@ -36,5 +36,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload when options (e.g. map style) change."""
-    await hass.config_entries.async_reload(entry.entry_id)
+    """Apply new options immediately (map style) and refresh maps."""
+    coordinator: CodGalbenCoordinator | None = hass.data.get(DOMAIN, {}).get(
+        entry.entry_id
+    )
+    if coordinator is None:
+        await hass.config_entries.async_reload(entry.entry_id)
+        return
+    if coordinator.data is not None:
+        coordinator.async_set_updated_data(coordinator.data)
+    await coordinator.async_request_refresh()

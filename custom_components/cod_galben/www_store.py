@@ -17,6 +17,47 @@ from .www_assets import MAP_HTML
 
 _LOGGER = logging.getLogger(__name__)
 
+_MIN_OFFICIAL_SVG_BYTES = 50_000
+
+
+def www_gis_dir(hass: HomeAssistant) -> Path:
+    return Path(hass.config.path("www")) / WWW_GIS_DIR
+
+
+def official_svg_filename(map_id: str) -> str:
+    return f"harta_anm_{map_id}.svg"
+
+
+def official_svg_local_url(map_id: str) -> str:
+    return f"/local/{WWW_GIS_DIR}/{official_svg_filename(map_id)}"
+
+
+def official_svg_paths(hass: HomeAssistant, map_id: str) -> tuple[Path, Path]:
+    """Return (cod_galben path, legacy www/ path)."""
+    name = official_svg_filename(map_id)
+    www = Path(hass.config.path("www"))
+    return www / WWW_GIS_DIR / name, www / name
+
+
+def official_svg_on_disk(hass: HomeAssistant, map_id: str) -> bool:
+    for path in official_svg_paths(hass, map_id):
+        try:
+            if path.is_file() and path.stat().st_size >= _MIN_OFFICIAL_SVG_BYTES:
+                return True
+        except OSError:
+            continue
+    return False
+
+
+def read_official_svg(hass: HomeAssistant, map_id: str) -> str:
+    for path in official_svg_paths(hass, map_id):
+        try:
+            if path.is_file() and path.stat().st_size >= _MIN_OFFICIAL_SVG_BYTES:
+                return path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+    return ""
+
 # Static Leaflet files shipped with the integration
 _STATIC_DIR = Path(__file__).parent / "www_static"
 _STATIC_FILES = (
@@ -29,10 +70,6 @@ _STATIC_FILES = (
     "images/layers.png",
     "images/layers-2x.png",
 )
-
-
-def www_gis_dir(hass: HomeAssistant) -> Path:
-    return Path(hass.config.path("www")) / WWW_GIS_DIR
 
 
 def _copy_leaflet_assets(target: Path) -> None:
@@ -59,6 +96,34 @@ async def async_ensure_gis_assets(hass: HomeAssistant) -> Path:
         return target
 
     return await hass.async_add_executor_job(_write)
+
+
+async def async_write_official_svgs(
+    hass: HomeAssistant, svg_by_id: dict[str, str]
+) -> None:
+    """Save official ANM SVG maps for Lovelace <img> (harta_anm_{id}.svg)."""
+
+    def _write() -> None:
+        www = Path(hass.config.path("www"))
+        target = www_gis_dir(hass)
+        target.mkdir(parents=True, exist_ok=True)
+        written = 0
+        for map_id, text in svg_by_id.items():
+            if not map_id or not text:
+                continue
+            snippet = text.lstrip()[:400].casefold()
+            if "<svg" not in snippet:
+                continue
+            if official_svg_on_disk(hass, map_id):
+                continue
+            name = official_svg_filename(map_id)
+            (target / name).write_text(text, encoding="utf-8")
+            # Legacy path used by older Lovelace cards
+            (www / name).write_text(text, encoding="utf-8")
+            written += 1
+        _LOGGER.debug("Wrote %s official ANM SVG map(s)", written)
+
+    await hass.async_add_executor_job(_write)
 
 
 async def async_write_warning_geojson(

@@ -55,6 +55,7 @@ class WarningHit:
     map_id: str | None = None  # ANM harta.svg.php?id_avertizare=
     map_url: str | None = None
     gis_map_path: str | None = None  # /local/cod_galben/gis_{id}.json
+    official_map_path: str | None = None  # /local/cod_galben/harta_anm_{id}.svg
     # Full GeoJSON kept in memory for writing to www — never published to HA state
     geojson: dict[str, Any] | None = field(default=None, repr=False)
 
@@ -108,6 +109,7 @@ def assign_map_ids(hits: list[WarningHit], map_ids: list[str]) -> None:
             hit.map_id = map_ids[idx]
             hit.map_url = URL_HARTA_SVG.format(id=hit.map_id)
             hit.gis_map_path = f"/local/cod_galben/gis_{hit.map_id}.json"
+            hit.official_map_path = f"/local/cod_galben/harta_anm_{hit.map_id}.svg"
 
 
 def _strip_html(raw: str) -> str:
