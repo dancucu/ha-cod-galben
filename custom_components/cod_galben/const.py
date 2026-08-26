@@ -416,6 +416,13 @@ def fold_ascii(text: str) -> str:
     return (text or "").translate(_DIACRITIC_TABLE)
 
 
+# Register ASCII-folded county names (cedilla vs comma-below, missing diacritics).
+for _code, _name in JUDETE.items():
+    _COUNTY_ALIASES[fold_ascii(_name).casefold()] = _code
+for _alias, _code in list(_COUNTY_ALIASES.items()):
+    _COUNTY_ALIASES[fold_ascii(_alias).casefold()] = _code
+
+
 def _with_ascii_variants(phrases: list[str]) -> list[str]:
     """Unique phrases plus ASCII folds, longest first."""
     seen: set[str] = set()
@@ -464,7 +471,10 @@ def county_highlight_data(code: str) -> dict[str, str | list[str]]:
 def normalize_county_token(token: str) -> str | None:
     """Map a free-text county token to ANM code, if known."""
     key = token.strip().casefold()
-    return _COUNTY_ALIASES.get(key)
+    if key in _COUNTY_ALIASES:
+        return _COUNTY_ALIASES[key]
+    folded = fold_ascii(key)
+    return _COUNTY_ALIASES.get(folded)
 
 
 def base_judet_code(cod: str) -> str:

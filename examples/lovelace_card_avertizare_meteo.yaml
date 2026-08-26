@@ -261,18 +261,7 @@ entities:
             html += `</div>`;
           }
 
-          const nc = states['binary_sensor.cod_galben_galati_nowcasting_activ'];
-          if (nc && nc.state === 'on') {
-            const nl = states['sensor.cod_galben_galati_nivel_nowcasting']?.state || 'galben';
-            const nf = states['sensor.cod_galben_galati_fenomene_nowcasting']?.state || '';
-            const ni = states['sensor.cod_galben_galati_interval_nowcasting']?.state || '';
-            const c = colorFor(nl);
-            html += `<div style="margin-top:8px;margin-bottom:8px;border-left:4px solid ${c};padding-left:10px;">`;
-            html += `<div style="font-weight:900;color:${c};text-transform:uppercase;margin-bottom:6px;">NOWCASTING${badge(nl)}</div>`;
-            html += `<div><b style="color:${c}">Interval:</b> ${ni}</div>`;
-            html += `<div><b style="color:${c}">Fenomene:</b> ${nf}</div>`;
-            html += `</div>`;
-          }
+          // Nowcasting: card separat — vezi examples/lovelace_card_nowcasting.yaml
 
           return html || 'Nu sunt mesaje de afișat.';
         })();

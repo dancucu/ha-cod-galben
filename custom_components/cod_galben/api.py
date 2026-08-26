@@ -20,6 +20,7 @@ from .const import (
     URL_HARTA_SVG,
     ZONE_COLOR_CODES,
     base_judet_code,
+    fold_ascii,
     max_level,
     normalize_county_token,
 )
@@ -29,8 +30,9 @@ _LOGGER = logging.getLogger(__name__)
 
 _TAG_RE = re.compile(r"<[^>]+>")
 _SPACE_RE = re.compile(r"\s+")
+# Include both comma-below (ț/ș) and cedilla (ţ/ş) forms — ANM mixes them.
 _JUDET_RE = re.compile(
-    r"jude[tț]ul?\s+([A-Za-zăâîșțĂÂÎȘȚ\- ]+?)(?:\s*:|\s*;|,|$)",
+    r"jude[tţț]ul?\s+([A-Za-zăâîșşțţĂÂÎȘŞȚŢ\- ]+?)(?:\s*:|\s*;|,|$)",
     re.IGNORECASE,
 )
 
@@ -215,7 +217,11 @@ def _county_matches_zone(cod: str, county: str) -> bool:
 
 
 def extract_counties_from_zona(zona: str) -> list[str]:
-    """Extract ANM county codes mentioned in a nowcasting zona string."""
+    """Extract ANM county codes mentioned in a nowcasting zona string.
+
+    Prefer ``Județul X:`` headers. Name fallback uses word boundaries so
+    localities like ``Galații Bistriței`` do not match județul Galați.
+    """
     zona = unescape(zona or "")
     found: list[str] = []
     seen: set[str] = set()
@@ -226,13 +232,22 @@ def extract_counties_from_zona(zona: str) -> list[str]:
             seen.add(code)
             found.append(code)
 
-    # fallback: look for known county names anywhere in text
+    # fallback: word-boundary match on folded county names (not substrings)
     if not found:
-        lower = zona.casefold()
         from .const import JUDETE
 
-        for code, name in JUDETE.items():
-            if name.casefold() in lower or f" {code.casefold()} " in f" {lower} ":
+        lower = fold_ascii(zona).casefold()
+        padded = f" {lower} "
+        for code, name in sorted(
+            JUDETE.items(), key=lambda item: len(item[1]), reverse=True
+        ):
+            folded_name = fold_ascii(name).casefold()
+            # Require non-letter boundaries so "galati" ≠ "galatii bistritei"
+            pattern = re.compile(
+                rf"(?<![0-9a-z]){re.escape(folded_name)}(?![0-9a-z])",
+                re.IGNORECASE,
+            )
+            if pattern.search(lower) or f" {code.casefold()} " in padded:
                 if code not in seen:
                     seen.add(code)
                     found.append(code)

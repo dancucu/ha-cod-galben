@@ -1,0 +1,162 @@
+# Card Lovelace „NOWCASTING” — stil dashboard Acasă (ha-lenovo)
+#
+# Vizibil doar când binary_sensor …_nowcasting_activ = on.
+# Dependențe HACS: button-card, fold-entity-row (ca la AVERTIZARE METEO).
+
+type: entities
+visibility:
+  - condition: state
+    entity: binary_sensor.cod_galben_galati_nowcasting_activ
+    state: "on"
+entities:
+  - type: custom:fold-entity-row
+    padding: 0
+    clickable: true
+    head:
+      type: custom:button-card
+      entity: sensor.cod_galben_galati_nivel_nowcasting
+      name: NOWCASTING
+      icon: mdi:radar
+      show_name: true
+      show_icon: true
+      show_state: false
+      tap_action:
+        action: none
+      styles:
+        card:
+          - background-color: transparent
+          - box-shadow: none
+          - padding: 0
+          - margin: 0
+          - pointer-events: none
+        icon:
+          - width: 22px
+          - height: 22px
+          - color: |
+              [[[
+                const n = (entity.state || 'none').toLowerCase();
+                if (n === 'rosu' || n === 'roșu') return '#ea3323';
+                if (n === 'portocaliu') return '#f09035';
+                if (n === 'galben') return '#ffde07';
+                if (n === 'informare') return '#9e9e9e';
+                return '#3498db';
+              ]]]
+        name:
+          - font-weight: 900
+          - font-size: 16px
+          - text-transform: uppercase
+          - color: |
+              [[[
+                const n = (entity.state || 'none').toLowerCase();
+                if (n === 'rosu' || n === 'roșu') return '#ea3323';
+                if (n === 'portocaliu') return '#f09035';
+                if (n === 'galben') return '#ffde07';
+                if (n === 'informare') return '#9e9e9e';
+                return '#3498db';
+              ]]]
+    entities:
+      - type: custom:button-card
+        entity: binary_sensor.cod_galben_galati_nowcasting_activ
+        show_name: false
+        show_state: false
+        show_icon: false
+        show_label: true
+        tap_action:
+          action: url
+          url_path: https://www.meteoromania.ro/avertizari/
+        styles:
+          card:
+            - padding: 12px
+            - border-radius: 12px
+          label:
+            - text-align: left
+            - font-size: 13px
+            - white-space: normal
+        label: |
+          [[[
+            return (function () {
+              const bin = states['binary_sensor.cod_galben_galati_nowcasting_activ'];
+              const fenomene = states['sensor.cod_galben_galati_fenomene_nowcasting']?.state || '';
+              const interval = states['sensor.cod_galben_galati_interval_nowcasting']?.state || '';
+              const judet = bin?.attributes?.judet_nume || 'Galați';
+              const warningsAll = bin?.attributes?.warnings || [];
+
+              const colorFor = (n) => {
+                const x = (n || '').toLowerCase();
+                if (x === 'rosu' || x === 'roșu') return '#ea3323';
+                if (x === 'portocaliu') return '#f09035';
+                if (x === 'galben') return '#ffde07';
+                if (x === 'informare') return '#9e9e9e';
+                return '#3498db';
+              };
+
+              const badge = (n) => {
+                const x = (n || '').toLowerCase();
+                if (x === 'galben')
+                  return '<span style="background:#ffde07;color:black;padding:1px 6px;border-radius:3px;margin-left:6px;font-weight:bold;">COD GALBEN</span>';
+                if (x === 'portocaliu')
+                  return '<span style="background:#f09035;color:black;padding:1px 6px;border-radius:3px;margin-left:6px;font-weight:bold;">COD PORTOCALIU</span>';
+                if (x === 'rosu' || x === 'roșu')
+                  return '<span style="background:#ea3323;color:white;padding:1px 6px;border-radius:3px;margin-left:6px;font-weight:bold;">COD ROȘU</span>';
+                if (x === 'informare')
+                  return '<span style="background:#9e9e9e;color:white;padding:1px 6px;border-radius:3px;margin-left:6px;font-weight:bold;">INFORMARE</span>';
+                return '';
+              };
+
+              const escapeHtml = (s) => String(s || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+
+              const stripHtml = (s) => String(s || '')
+                .replace(/<br\s*\/?>/gi, ' ')
+                .replace(/<[^>]+>/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+              // Doar mesaje cu header „Județul <selecție>:” (nu localități tip Galații Bistriței)
+              const foldAscii = (s) => String(s || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase();
+              const judetFold = foldAscii(judet);
+              const countyHeaderRe = new RegExp(
+                'judetul\\s+' + judetFold.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*:'
+              );
+              const warnings = warningsAll.filter((w) =>
+                countyHeaderRe.test(foldAscii(stripHtml(w.zona || '')))
+              );
+
+              if (!bin || bin.state !== 'on' || !warnings.length) {
+                return `<div style="opacity:0.75;">Niciun nowcasting activ pentru <b>${judet}</b>.</div>`;
+              }
+
+              let html = '';
+              for (let i = 0; i < warnings.length; i++) {
+                const w = warnings[i];
+                const c = colorFor(w.level);
+                const titlu = (w.tip || 'Nowcasting').toUpperCase();
+                const iv = w.interval_text || interval || '—';
+                const fen = w.fenomene || fenomene || '—';
+                const zona = stripHtml(w.zona || '');
+                const detalii = stripHtml(w.mesaj || w.message_excerpt || '');
+                const idx = warnings.length > 1
+                  ? `<span style="opacity:0.85;margin-left:8px;font-size:12px;font-weight:700;">${i + 1}/${warnings.length}</span>`
+                  : '';
+                html += `<div style="margin-bottom:16px;border-left:4px solid ${c};padding-left:10px;">`;
+                html += `<div style="font-weight:900;color:${c};text-transform:uppercase;margin-bottom:6px;">${titlu}${badge(w.level)}${idx}</div>`;
+                html += `<div style="margin-bottom:6px;"><b style="color:${c}">Județ:</b> ${judet}</div>`;
+                html += `<div style="margin-bottom:6px;"><b style="color:${c}">Interval:</b> ${escapeHtml(iv)}</div>`;
+                if (zona) {
+                  html += `<div style="margin-bottom:6px;"><b style="color:${c}">Zonă:</b> ${escapeHtml(zona)}</div>`;
+                }
+                html += `<div style="margin-bottom:6px;"><b style="color:${c}">Fenomene:</b> ${escapeHtml(fen)}</div>`;
+                if (detalii && detalii !== stripHtml(fen)) {
+                  html += `<div style="margin-top:8px;line-height:1.45;font-size:13px;"><b style="color:${c}">Detalii:</b> ${escapeHtml(detalii)}</div>`;
+                }
+                html += `</div>`;
+              }
+              return html || 'Nu sunt mesaje de afișat.';
+            })();
+          ]]]
