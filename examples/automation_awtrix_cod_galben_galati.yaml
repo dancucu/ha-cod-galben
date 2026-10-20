@@ -1,0 +1,20 @@
+# AWTRIX — avertizări ANM Galați (integrare Cod Galben)
+# După import blueprint: examples/blueprints/awtrix_cod_galben_anm.yaml
+# → config/blueprints/automation/cod_galben/awtrix_cod_galben_anm.yaml
+
+alias: Cod Galben Galați pe AWTRIX
+description: >-
+  Afișează cod galben / portocaliu / roșu ANM pentru județul Galați pe AWTRIX
+  când integrarea Cod Galben raportează avertizări (inclusiv nowcasting).
+mode: restart
+use_blueprint:
+  path: cod_galben/awtrix_cod_galben_anm.yaml
+  input:
+    awtrix:
+      - ca5bb65188bbe1c5e7345c7121ab0ace
+    app_topic: cod-galben
+    nivel_avertizare: sensor.cod_galben_galati_nivel_avertizare
+    nivel_nowcasting: sensor.cod_galben_galati_nivel_nowcasting
+    include_nowcasting: true
+    min_level: 2
+    message_duration: 20

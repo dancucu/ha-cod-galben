@@ -114,6 +114,17 @@ Replică stilul cardului din dashboard-ul **Acasă** (ha-lenovo): antet colorat 
 
 Culori antet: galben `#ffde07` / portocaliu `#f09035` / roșu `#ea3323` / informare gri / idle albastru. Expandat: tip, interval, fenomene, **detalii** (textul ANM cu temperaturi / precipitații din atributul XML `mesaj`) + hărți conform opțiunilor din Configure + nowcasting dacă e activ. Tap pe detalii → [meteoromania.ro/avertizari](https://www.meteoromania.ro/avertizari/).
 
+## AWTRIX (matrice LED)
+
+Blueprint MQTT pentru [AWTRIX 3](https://blueforcer.de/awtrix3/) — adaptare din ideea [DWD weather warnings AWTRIX](https://github.com/jc-23/home-assistant), folosind datele Cod Galben în loc de DWD.
+
+| Fișier | Rol |
+|--------|-----|
+| [`examples/blueprints/awtrix_cod_galben_anm.yaml`](examples/blueprints/awtrix_cod_galben_anm.yaml) | Blueprint: citește `warnings` de pe senzorii de **nivel**, publică JSON pe `{device_topic}/custom/{app_topic}` |
+| [`examples/automation_awtrix_cod_galben_galati.yaml`](examples/automation_awtrix_cod_galben_galati.yaml) | Exemplu Galați (AWTRIX + `sensor.cod_galben_galati_nivel_*`) |
+
+**Instalare:** copiază blueprint-ul în `/config/blueprints/automation/cod_galben/`, apoi creează automatizarea din UI sau importă YAML-ul exemplu. Pe AWTRIX trebuie iconițele `ww-*` (script [upload_icon.sh](https://raw.githubusercontent.com/jc-23/home-assistant/master/icons/upload_icon.sh) din proiectul jc-23). `min_level: 2` = doar cod galben și peste (fără informare).
+
 ## Automatizări
 
 Vezi [`examples/`](examples/).

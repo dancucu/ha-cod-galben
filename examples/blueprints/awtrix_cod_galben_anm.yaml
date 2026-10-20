@@ -1,0 +1,219 @@
+blueprint:
+  name: "AWTRIX Cod Galben ANM (România) ⛈️"
+  description: >
+    Afișează pe AWTRIX avertizările meteo ANM pentru județul din integrarea Cod Galben.
+    MQTT: {device_topic}/custom/{app_topic}. Iconițe ww-* ca la blueprint-ul DWD AWTRIX.
+  domain: automation
+  input:
+    awtrix:
+      name: AWTRIX Device
+      selector:
+        device:
+          integration: mqtt
+          manufacturer: Blueforcer
+          model: AWTRIX 3
+          multiple: true
+    app_topic:
+      name: App topic (MQTT)
+      default: cod-galben
+      selector:
+        text: {}
+    nivel_avertizare:
+      name: Senzor nivel avertizare
+      selector:
+        entity:
+          filter:
+            - domain:
+                - sensor
+          multiple: false
+    nivel_nowcasting:
+      name: Senzor nivel nowcasting
+      selector:
+        entity:
+          filter:
+            - domain:
+                - sensor
+          multiple: false
+    include_nowcasting:
+      name: Include nowcasting
+      default: true
+      selector:
+        boolean: {}
+    min_level:
+      name: Nivel minim (0=toate, 2=galben+, 3=portocaliu+, 4=rosu)
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 4
+          step: 1
+          mode: box
+    message_duration:
+      name: Durata mesaj (sec)
+      default: 20
+      selector:
+        number:
+          min: 0
+          max: 300
+          step: 1
+          mode: slider
+    icon_fog:
+      default: ww-fog
+      selector:
+        text: {}
+    icon_frost:
+      default: ww-frost
+      selector:
+        text: {}
+    icon_thunderstorm:
+      default: ww-lightning
+      selector:
+        text: {}
+    icon_pouring:
+      default: ww-pouring
+      selector:
+        text: {}
+    icon_snow:
+      default: ww-snow
+      selector:
+        text: {}
+    icon_radition:
+      default: ww-radiation
+      selector:
+        text: {}
+    icon_wind:
+      default: ww-wind
+      selector:
+        text: {}
+    icon_thaw:
+      default: ww-thaw
+      selector:
+        text: {}
+    icon_blackice:
+      default: ww-blackice
+      selector:
+        text: {}
+    icon_warning:
+      default: ww-generic
+      selector:
+        text: {}
+
+mode: restart
+
+variables:
+  device_ids: !input awtrix
+  app_topic: !input app_topic
+  devices_topics: >
+    {%- macro get_device_topic(device_id) -%}
+      {{ states((device_entities(device_id) | select('search','device_topic') | list)[0]) }}
+    {%- endmacro -%}
+    {%- set ns = namespace(devices=[]) -%}
+    {%- for device_id in device_ids -%}
+      {%- set device = get_device_topic(device_id) | replace(' ','') -%}
+      {%- set ns.devices = ns.devices + [ device ~ '/custom/' ~ app_topic ] -%}
+    {%- endfor -%}
+    {{ ns.devices | reject('match','unavailable') | list }}
+  nivel_avertizare: !input nivel_avertizare
+  nivel_nowcasting: !input nivel_nowcasting
+  include_nowcasting: !input include_nowcasting
+  min_level: !input min_level
+  message_duration: !input message_duration
+  icon_frost: !input icon_frost
+  icon_thunderstorm: !input icon_thunderstorm
+  icon_pouring: !input icon_pouring
+  icon_snow: !input icon_snow
+  icon_blackice: !input icon_blackice
+  icon_wind: !input icon_wind
+  icon_fog: !input icon_fog
+  icon_thaw: !input icon_thaw
+  icon_radition: !input icon_radition
+  icon_warning: !input icon_warning
+  level_rank:
+    none: 0
+    informare: 1
+    galben: 2
+    portocaliu: 3
+    rosu: 4
+  level_label:
+    informare: Info
+    galben: Galben
+    portocaliu: Portocaliu
+    rosu: Rosu
+  level_color:
+    informare: "#29b6f6"
+    galben: "#ffde07"
+    portocaliu: "#fb8c00"
+    rosu: "#e53935"
+  warnings: >
+    {%- set ns = namespace(items=[]) -%}
+    {%- set av = state_attr(nivel_avertizare, 'warnings') or [] -%}
+    {%- set nc = state_attr(nivel_nowcasting, 'warnings') or [] if include_nowcasting else [] -%}
+    {%- for w in av + nc -%}
+      {%- set lvl = w.level | default('none') -%}
+      {%- set rank = level_rank.get(lvl, 0) -%}
+      {%- if rank >= (min_level | int) and rank > 0 -%}
+        {%- set ns.items = ns.items + [w] -%}
+      {%- endif -%}
+    {%- endfor -%}
+    {{ ns.items }}
+  warnings_count: "{{ warnings | length }}"
+  payload: >
+    {%- macro warning_icon(text) -%}
+      {%- set f = (text | default('') | lower | replace('ă','a') | replace('â','a') | replace('î','i') | replace('ș','s') | replace('ş','s') | replace('ț','t') | replace('ţ','t')) -%}
+      {%- if 'tunet' in f or 'fulger' in f or 'vijeli' in f or 'furtun' in f -%}{{ icon_thunderstorm }}
+      {%- elif 'vant' in f or 'rafale' in f -%}{{ icon_wind }}
+      {%- elif 'ceata' in f or 'negura' in f -%}{{ icon_fog }}
+      {%- elif 'ploa' in f or 'grindina' in f -%}{{ icon_pouring }}
+      {%- elif 'nin' in f or 'zapada' in f -%}{{ icon_snow }}
+      {%- elif 'polei' in f or 'gheata' in f -%}{{ icon_blackice }}
+      {%- elif 'dezghet' in f -%}{{ icon_thaw }}
+      {%- elif 'ger' in f or 'inghet' in f -%}{{ icon_frost }}
+      {%- elif 'canicul' in f or 'caldura' in f -%}{{ icon_radition }}
+      {%- else -%}{{ icon_warning }}
+      {%- endif -%}
+    {%- endmacro -%}
+    {%- macro fmt_time(iso) -%}
+      {%- if iso -%}
+        {{ (iso | as_datetime | as_local).strftime('%a %H:%M') | replace('Mon','Lu') | replace('Tue','Ma') | replace('Wed','Mi') | replace('Thu','Jo') | replace('Fri','Vi') | replace('Sat','Sa') | replace('Sun','Du') }}
+      {%- else -%}—{%- endif -%}
+    {%- endmacro -%}
+    {{ iif(warnings_count | int > 1, '[', '') }}
+    {%- for w in warnings -%}
+      {%- set lvl = w.level | default('galben') -%}
+      {%- set fen = (w.fenomene | default('') | striptags | regex_replace('\\s+', ' ') | trim)[:42] -%}
+      {%- set jud = w.judet_codes[0] if w.judet_codes else state_attr(nivel_avertizare, 'judet') -%}
+      {"icon":"{{ warning_icon(w.fenomene) }}","text":"Cod {{ level_label.get(lvl, lvl) }} {{ jud }}: {{ fen }}, {{ fmt_time(w.start) }}-{{ fmt_time(w.end) }}","duration":{{ message_duration }},"color":"{{ level_color.get(lvl, '#ffde07') }}","pushIcon":2}
+      {{ iif(warnings_count | int > 1 and not loop.last, ',', '') }}
+    {%- endfor -%}
+    {{ iif(warnings_count | int > 1, ']', '') }}
+
+trigger:
+  - platform: state
+    entity_id: !input nivel_avertizare
+  - platform: state
+    entity_id: !input nivel_nowcasting
+
+condition: []
+
+action:
+  - repeat:
+      for_each: "{{ devices_topics }}"
+      sequence:
+        - service: mqtt.publish
+          data:
+            qos: 0
+            retain: false
+            topic: "{{ repeat.item }}"
+            payload: ""
+        - choose:
+            - conditions:
+                - condition: template
+                  value_template: "{{ warnings_count | int > 0 }}"
+              sequence:
+                - service: mqtt.publish
+                  data:
+                    qos: 0
+                    retain: false
+                    topic: "{{ repeat.item }}"
+                    payload: "{{ payload }}"
+          default: []
