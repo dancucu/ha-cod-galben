@@ -158,8 +158,11 @@ variables:
     {{ ns.items }}
   warnings_count: "{{ warnings | length }}"
   payload: >
+    {%- macro no_diac(s) -%}
+      {{- s | default('') | replace('ă','a') | replace('Ă','A') | replace('â','a') | replace('Â','A') | replace('î','i') | replace('Î','I') | replace('ș','s') | replace('Ş','S') | replace('ş','s') | replace('ț','t') | replace('Ţ','T') | replace('ţ','t') -}}
+    {%- endmacro -%}
     {%- macro warning_icon(text) -%}
-      {%- set f = (text | default('') | lower | replace('ă','a') | replace('â','a') | replace('î','i') | replace('ș','s') | replace('ş','s') | replace('ț','t') | replace('ţ','t')) -%}
+      {%- set f = no_diac(text) | lower -%}
       {%- if 'tunet' in f or 'fulger' in f or 'vijeli' in f or 'furtun' in f -%}{{ icon_thunderstorm }}
       {%- elif 'vant' in f or 'rafale' in f -%}{{ icon_wind }}
       {%- elif 'ceata' in f or 'negura' in f -%}{{ icon_fog }}
@@ -175,14 +178,15 @@ variables:
     {%- macro fmt_time(iso) -%}
       {%- if iso -%}
         {{ (iso | as_datetime | as_local).strftime('%a %H:%M') | replace('Mon','Lu') | replace('Tue','Ma') | replace('Wed','Mi') | replace('Thu','Jo') | replace('Fri','Vi') | replace('Sat','Sa') | replace('Sun','Du') }}
-      {%- else -%}—{%- endif -%}
+      {%- else -%}-{%- endif -%}
     {%- endmacro -%}
     {{ iif(warnings_count | int > 1, '[', '') }}
     {%- for w in warnings -%}
       {%- set lvl = w.level | default('galben') -%}
-      {%- set fen = (w.fenomene | default('') | striptags | regex_replace('\\s+', ' ') | trim)[:42] -%}
+      {%- set fen = no_diac(w.fenomene | default('') | striptags | regex_replace('\\s+', ' ') | trim)[:42] -%}
       {%- set jud = w.judet_codes[0] if w.judet_codes else state_attr(nivel_avertizare, 'judet') -%}
-      {"icon":"{{ warning_icon(w.fenomene) }}","text":"Cod {{ level_label.get(lvl, lvl) }} {{ jud }}: {{ fen }}, {{ fmt_time(w.start) }}-{{ fmt_time(w.end) }}","duration":{{ message_duration }},"color":"{{ level_color.get(lvl, '#ffde07') }}","pushIcon":2}
+      {%- set lvl_txt = no_diac(level_label.get(lvl, lvl)) -%}
+      {"icon":"{{ warning_icon(w.fenomene) }}","text":"Cod {{ lvl_txt }} {{ jud }}: {{ fen }}, {{ fmt_time(w.start) }}-{{ fmt_time(w.end) }}","duration":{{ message_duration }},"color":"{{ level_color.get(lvl, '#ffde07') }}","pushIcon":2}
       {{ iif(warnings_count | int > 1 and not loop.last, ',', '') }}
     {%- endfor -%}
     {{ iif(warnings_count | int > 1, ']', '') }}
