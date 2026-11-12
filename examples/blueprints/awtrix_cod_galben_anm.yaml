@@ -166,7 +166,7 @@ variables:
       {%- if 'tunet' in f or 'fulger' in f or 'vijeli' in f or 'furtun' in f -%}{{ icon_thunderstorm }}
       {%- elif 'vant' in f or 'rafale' in f -%}{{ icon_wind }}
       {%- elif 'ceata' in f or 'negura' in f -%}{{ icon_fog }}
-      {%- elif 'ploa' in f or 'grindina' in f -%}{{ icon_pouring }}
+      {%- elif 'ploi' in f or 'ploa' in f or 'grindina' in f -%}{{ icon_pouring }}
       {%- elif 'nin' in f or 'zapada' in f -%}{{ icon_snow }}
       {%- elif 'polei' in f or 'gheata' in f -%}{{ icon_blackice }}
       {%- elif 'dezghet' in f -%}{{ icon_thaw }}
